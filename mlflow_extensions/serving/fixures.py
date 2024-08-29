@@ -6,6 +6,8 @@ from typing import Optional, List, Dict, Any
 
 import httpx
 
+from mlflow_extensions.serving.engines.base import debug_msg
+
 
 class LocalTestServer:
 
@@ -28,7 +30,10 @@ class LocalTestServer:
         self._http_client = httpx.Client(base_url=f"http://{self._test_serving_host}:{self._test_serving_port}")
 
     def start(self):
-        subprocess.run(f"kill $(lsof -t -i:{self._test_serving_port})", shell=True)
+        try:
+            subprocess.run(f"kill $(lsof -t -i:{self._test_serving_port})", shell=True)
+        except Exception as e:
+            debug_msg(f"Failed to kill port: {e}")
         command_args = ["mlflow", "models", "serve", "-m", self._model_uri, "-p", str(self._test_serving_port),
                         *self._additional_serving_flags]
         # spawn in new process group
