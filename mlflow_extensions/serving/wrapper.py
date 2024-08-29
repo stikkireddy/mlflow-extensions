@@ -79,7 +79,7 @@ class CustomServingEnginePyfuncWrapper(mlflow.pyfunc.PythonModel):
             if chat_template is None:
                 raise ValueError(f"Chat template not found in tokenizer config file {str(tokenizer_config_file)}")
 
-    def pip_reqs(self, **kwargs):
+    def get_pip_reqs(self, **kwargs):
         return self._engine_config.default_pip_reqs(**kwargs)
 
     def setup(self,
