@@ -72,10 +72,9 @@ class VLLMEngineConfig(EngineConfig):
     def engine_pip_reqs(self, *,
                         vllm_version: str = "0.5.5",
                         httpx_version: str = "0.27.0",
-                        flash_attn_version: str = "2.6.3",
                         lm_format_enforcer_version: str = "0.10.6",
                         outlines_version: str = "0.0.46") -> List[str]:
-        default_installs = [f"vllm=={vllm_version}", f"httpx=={httpx_version}", f"flash-attn=={flash_attn_version}"]
+        default_installs = [f"vllm=={vllm_version}", f"httpx=={httpx_version}"]
         if self.guided_decoding_backend == "lm-format-enforcer":
             default_installs.append(f"lm-format-enforcer=={lm_format_enforcer_version}")
         if self.guided_decoding_backend == "outlines":
