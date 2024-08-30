@@ -9,6 +9,15 @@ from mlflow.pyfunc import PythonModelContext
 
 from mlflow_extensions.serving.engines.base import EngineConfig, Command, EngineProcess, debug_msg
 
+def set_full_permissions(path: str):
+    """Recursively set full permissions for all files and directories in the given path."""
+    for root, dirs, files in os.walk(path):
+        for d in dirs:
+            dir_path = os.path.join(root, d)
+            os.chmod(dir_path, 0o777)  # Full permissions for directories
+        for f in files:
+            file_path = os.path.join(root, f)
+            os.chmod(file_path, 0o777)  # Full permissions for files
 
 def download_and_extract(version: str = "0.3.8", download_dir: str = ".", extract_dir: str = "ollama") -> Optional[str]:
 
@@ -50,6 +59,8 @@ def download_and_extract(version: str = "0.3.8", download_dir: str = ".", extrac
     else:
         print(f"Expected directory {extracted_folder_path} not found. No renaming performed.")
 
+    set_full_permissions(str(download_dir))
+
     return str((Path(download_dir) / "bin/ollama").absolute())
 
 
@@ -88,6 +99,7 @@ class OllamaEngineConfig(EngineConfig):
         local_model_path = "/root/models"
         if context is not None:
             local_model_path = context.artifacts.get(self.model_artifact_key)
+            set_full_permissions(str(local_model_path))
         ollama_root_dir = Path(local_model_path)
         bin_path = ollama_root_dir / "bin/ollama"
         new_env = os.environ.copy()
