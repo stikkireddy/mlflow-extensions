@@ -72,6 +72,7 @@ class OllamaEngineConfig(EngineConfig):
         server = Command(name="ollama-serve", command=[ollama_cli, "serve"], env=new_env)
         server.start()
         download_model = Command(name="ollama-download-model", command=[ollama_cli, "pull", self.model], env=new_env)
+        download_model.start()
         download_model.wait_and_log()
         server.stop()
         return {
