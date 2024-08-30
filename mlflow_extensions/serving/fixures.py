@@ -49,6 +49,12 @@ class LocalTestServer:
     def wait_and_assert_healthy(self):
         assert self._server_process is not None, "Server process has not been started."
         while True:
+            try:
+                # try to update the returncode incase server crashes
+                self._server_process.communicate(timeout=5)
+            except subprocess.TimeoutExpired:
+                pass
+
             if self._server_process.returncode is not None:
                 stdout, stderr = self._server_process.communicate(timeout=10)
                 print('STDOUT:', stdout.decode())
@@ -64,7 +70,7 @@ class LocalTestServer:
             except Exception as e:
                 print("endpoint not yet available")
             assert self._server_process.returncode is None, "Server process has terminated unexpectedly."
-            time.sleep(1)
+
 
     def query(self, *, payload: Dict[str, Any]):
         return self._http_client.post("/invocations", json=payload)
