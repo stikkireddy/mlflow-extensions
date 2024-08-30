@@ -153,7 +153,7 @@ class EngineProcess(abc.ABC):
         )
         self._oai_http_client = httpx.Client(
             base_url=f"http://{self._config.host}:{self._config.port}/{self._config.openai_api_path}",
-            timeout=30
+            timeout=300
         )
         self._proc = None
 
