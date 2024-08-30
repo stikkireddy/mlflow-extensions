@@ -80,7 +80,7 @@ def OpenAIWrapper(*args, **kwargs) -> 'OpenAI':
     ))
 
 
-def ChatOpenAIWrapper(**kwargs) -> ChatOpenAI:
+def ChatOpenAIWrapper(**kwargs) -> 'ChatOpenAI':
     kwargs.pop("http_client", None)
     assert "base_url" in kwargs, "You must provide a base_url"
     base_url = kwargs["base_url"]

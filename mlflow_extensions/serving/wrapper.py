@@ -1,11 +1,19 @@
 import json
+from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Dict, Type, Optional
+from typing import List, Dict, Type, Optional, Iterator
 
 import mlflow
+from httpx import Response
 from huggingface_hub import snapshot_download
 
 from mlflow_extensions.serving.engines.base import EngineProcess, debug_msg, EngineConfig
+
+
+@dataclass
+class CustomEngineServingResponse:
+    status: int
+    data: dict
 
 
 class CustomServingEnginePyfuncWrapper(mlflow.pyfunc.PythonModel):
@@ -40,6 +48,23 @@ class CustomServingEnginePyfuncWrapper(mlflow.pyfunc.PythonModel):
         response = self._engine.oai_http_client.post(self._endpoint, content=req_str)
         status_code = response.status_code
         return json.dumps({"status": status_code, "data": response.text})
+
+    @staticmethod
+    def iter_mlflow_predictions(response: Response) -> Iterator[CustomEngineServingResponse]:
+        mlflow_response = response.json()
+        predictions = mlflow_response.get("predictions", [])
+        for prediction in predictions:
+            prediction = json.loads(prediction)
+            data = prediction.get("data", "")
+            try:
+                prediction_data = json.loads(data)
+            except Exception as e:
+                debug_msg(f"failed to parse data; got error: {str(e)}")
+                prediction_data = data
+            yield CustomEngineServingResponse(
+                status=prediction.get("status"),
+                data=prediction_data
+            )
 
     def load_context(self, context):
         if self._engine is None:

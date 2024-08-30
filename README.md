@@ -34,19 +34,19 @@ from mlflow_extensions.serving.fixures import LocalTestServer
 from mlflow.utils.databricks_utils import get_databricks_host_creds
 
 
-fixture = LocalTestServer(
+local_server = LocalTestServer(
   model_uri="<uri to the model or run>",
   registry_host=get_databricks_host_creds().host,
   registry_token=get_databricks_host_creds().token
 )
 
-fixture.start()
+local_server.start()
 
-fixture.wait_and_assert_healthy()
+local_server.wait_and_assert_healthy()
 
 # assert fixture.query(payload={"inputs": [....]}) == ...
 
-fixture.stop()
+local_server.stop()
 ```
 
 ### Deploying Models using vLLM 
