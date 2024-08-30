@@ -77,6 +77,10 @@ class CustomServingEnginePyfuncWrapper(mlflow.pyfunc.PythonModel):
         self._engine.start_proc(context)
 
     def predict(self, context, model_input: List[List[str]], params=None) -> List[List[str]]:
+        if not isinstance(model_input, (list, dict)):
+            raise ValueError(f"model_input must be a list or dict but received: {type(model_input)}")
+        if isinstance(model_input, dict):
+            model_input = model_input.values()
         return [self._request_model(RequestMessageV1.deserialize(req)) for req in model_input]
 
     def _setup_artifacts(self, local_dir: str = "/root/models"):
