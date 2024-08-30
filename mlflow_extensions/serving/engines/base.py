@@ -64,6 +64,9 @@ class Command:
             print("Process has not been started.")
             return
 
+        if self.long_living is True:
+            raise ValueError("Unable to wait and log for long living process will hang the thread.")
+
         try:
             # Stream and print stdout
             for line in self.active_process.stdout:
