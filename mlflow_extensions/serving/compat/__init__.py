@@ -47,9 +47,7 @@ class CustomMLFlowHttpClient(Client):
 
     def send(self, request: Request, **kwargs) -> Response:
         openai_path_to_request = request.url.path.replace(self._custom_provided_base_path, "")
-        print(openai_path_to_request)
         content = request.content.decode("utf-8")
-        print(content)
         req = RequestMessageV1(
             request_path=openai_path_to_request,
             payload=content,
@@ -57,8 +55,6 @@ class CustomMLFlowHttpClient(Client):
             timeout=self._timeout,
         )
         inputs = {"inputs": [req.serialize()]}
-        import json
-        print(json.dumps(inputs))
         response = self._http_client.post("/invocations", json=inputs)
         resp_data = ResponseMessageV1.deserialize(response.json()["predictions"][0])
         return Response(
@@ -124,7 +120,6 @@ def inject_mlflow_openai_compat_client(
             base_url = kwargs.get("base_url")
             api_key = kwargs.get("api_key")
             timeout = int(kwargs.get("timeout", 30))
-            print(base_url, api_key, timeout)
             if validate_url_token(base_url, api_key) is False:
                 raise ValueError("You must provide an api_key")
 
@@ -144,7 +139,6 @@ def inject_mlflow_openai_compat_client(
                 )
 
             kwargs.update(additional_client_kwargs)
-            print(kwargs)
             original_init(self, **kwargs)
 
         cls.__init__ = new_init
