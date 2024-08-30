@@ -1,8 +1,13 @@
+import json
 import sys
 from dataclasses import field, dataclass
-from typing import List, Dict, Optional
+from pathlib import Path
+from typing import List, Dict, Optional, Union
 
-from mlflow_extensions.serving.engines.base import EngineConfig, debug_msg, EngineProcess
+from huggingface_hub import snapshot_download
+from mlflow.pyfunc import PythonModelContext
+
+from mlflow_extensions.serving.engines.base import EngineConfig, debug_msg, EngineProcess, Command
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -16,8 +21,15 @@ class VLLMEngineConfig(EngineConfig):
     max_model_len: Optional[int] = field(default=None)
     served_model_alias: Optional[str] = field(default=None)
     guided_decoding_backend: Optional[str] = field(default=None)
+    model_artifact_key: str = field(default="model")
+    verify_chat_template: bool = field(default=True)
+    tokenizer_config_file: str = field(default="tokenizer_config.json")
+    chat_template_key: str = field(default="chat_template")
 
-    def _to_vllm_command(self, local_model_path: Optional[str] = None) -> List[str]:
+    def _to_vllm_command(self, context: PythonModelContext = None) -> List[str]:
+        local_model_path = None
+        if context is not None:
+            local_model_path = context.artifacts.get(self.model_artifact_key)
         flags = []
         skip_flags = ["--enable-chunked-prefill",
                       "--model",
@@ -66,20 +78,49 @@ class VLLMEngineConfig(EngineConfig):
             *flags,
         ]
 
-    def to_run_command(self, local_model_path: Optional[str] = None) -> List[str]:
-        return self._to_vllm_command(local_model_path=local_model_path)
+    def to_run_command(self, context: PythonModelContext = None) -> Union[List[str], Command]:
+        return self._to_vllm_command(context=context)
 
     def engine_pip_reqs(self, *,
                         vllm_version: str = "0.5.5",
-                        httpx_version: str = "0.27.0",
                         lm_format_enforcer_version: str = "0.10.6",
                         outlines_version: str = "0.0.46") -> List[str]:
-        default_installs = [f"vllm=={vllm_version}", f"httpx=={httpx_version}"]
+        default_installs = [f"vllm=={vllm_version}"]
         if self.guided_decoding_backend == "lm-format-enforcer":
             default_installs.append(f"lm-format-enforcer=={lm_format_enforcer_version}")
         if self.guided_decoding_backend == "outlines":
             default_installs.append(f"outlines=={outlines_version}")
         return default_installs
+
+    def _hub_download_snapshot(self, repo_name: str, local_dir: str = "/root/models"):
+        local_dir = local_dir.rstrip('/')
+        model_local_path = f"{local_dir}/{repo_name}"
+        snapshot_download(repo_id=self.model,
+                          local_dir=model_local_path)
+        return model_local_path
+
+    def _setup_snapshot(self, local_dir: str = "/root/models"):
+        return self._hub_download_snapshot(self.model, local_dir)
+
+    def _setup_artifacts(self, local_dir: str = "/root/models"):
+        local_path = self._setup_snapshot(local_dir)
+        return {self.model_artifact_key: local_path}
+
+    def _verify_chat_template(self, artifacts: Dict[str, str]):
+        model_dir_path = Path(artifacts[self.model_artifact_key])
+        tokenizer_config_file = model_dir_path / self.tokenizer_config_file
+        assert tokenizer_config_file.exists(), f"Tokenizer config file not found at {str(tokenizer_config_file)}"
+        with open(str(tokenizer_config_file), "r") as f:
+            tokenizer_config = json.loads(f.read())
+            chat_template = tokenizer_config.get(self.chat_template_key)
+            if chat_template is None:
+                raise ValueError(f"Chat template not found in tokenizer config file {str(tokenizer_config_file)}")
+
+    def setup_artifacts(self, local_dir: str = "/root/models"):
+        artifacts = self._setup_artifacts(local_dir)
+        if self.verify_chat_template is True:
+            self._verify_chat_template(artifacts)
+        return artifacts
 
 
 class VLLMEngineProcess(EngineProcess):
