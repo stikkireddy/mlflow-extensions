@@ -1,5 +1,6 @@
 import json
 from dataclasses import dataclass
+from pathlib import Path
 from typing import List, Type, Optional, Iterator
 
 import mlflow
@@ -100,6 +101,12 @@ class CustomServingEnginePyfuncWrapper(mlflow.pyfunc.PythonModel):
             model_output=np.array([resp])
         )
 
-    def setup(self, *, local_dir="/root/models"):
-        self._setup_artifacts(local_dir)
+    def setup(self, *, local_dir=None):
+        if local_dir is None:
+            home_directory = Path.home() / "models"
+            home_directory.mkdir(parents=True, exist_ok=True)
+        else:
+            home_directory = local_dir
+        debug_msg(f"Setting up artifacts in {home_directory}")
+        self._setup_artifacts(str(home_directory))
         debug_msg(f"Command to be run: {self._engine_config.to_run_command()}")

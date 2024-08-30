@@ -1,7 +1,7 @@
 import abc
 import json
 from dataclasses import dataclass
-from typing import List, Self, Union
+from typing import List, Union
 
 
 class MessageProto(abc.ABC):
@@ -24,7 +24,7 @@ class MessageProto(abc.ABC):
 
     @classmethod
     @abc.abstractmethod
-    def deserialize(cls, data: List[str]) -> 'Self':
+    def deserialize(cls, data: List[str]) -> 'MessageProto':
         pass
 
 
@@ -43,7 +43,7 @@ class RequestMessageV1(MessageProto):
         return [self.request_path, self.method, str(self.timeout), self.payload]
 
     @classmethod
-    def deserialize(cls, data: List[str]) -> 'Self':
+    def deserialize(cls, data: List[str]) -> 'RequestMessageV1':
         return cls(
             request_path=data[1],
             method=data[2],
@@ -68,7 +68,7 @@ class ResponseMessageV1(MessageProto):
                 self.response_content_type]
 
     @classmethod
-    def deserialize(cls, data: List[str]) -> 'Self':
+    def deserialize(cls, data: List[str]) -> 'ResponseMessageV1':
         return cls(
             request_method=data[1],
             request_timeout=int(data[2]),
