@@ -79,7 +79,7 @@ class OllamaEngineConfig(EngineConfig):
         }
 
     def to_run_command(self, context: PythonModelContext = None) -> Union[List[str], Command]:
-        local_model_path = None
+        local_model_path = "/root/models"
         if context is not None:
             local_model_path = context.artifacts.get(self.model_artifact_key)
         ollama_root_dir = Path(local_model_path)
