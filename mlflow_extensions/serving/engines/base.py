@@ -10,6 +10,8 @@ from typing import List, Optional
 import httpx
 from filelock import FileLock
 
+from mlflow_extensions.version import get_mlflow_extensions_version
+
 
 def debug_msg(msg: str):
     print(f"[DEBUG][pid:{os.getpid()}] {msg}")
@@ -32,8 +34,17 @@ class EngineConfig(abc.ABC):
     def to_run_command(self, local_model_path: Optional[str] = None) -> List[str]:
         pass
 
-    def default_pip_reqs(self, *, filelock_version: str = "3.15.4", **kwargs) -> List[str]:
-        return [*self.engine_pip_reqs(**kwargs), f"filelock=={filelock_version}"]
+    def default_pip_reqs(self, *,
+                         filelock_version: str = "3.15.4",
+                         mlflow_extensions_version: str = None,
+                         **kwargs) -> List[str]:
+
+        mlflow_extensions_version = mlflow_extensions_version or get_mlflow_extensions_version()
+        if mlflow_extensions_version is None:
+            mlflow_extensions = "mlflow-extensions"
+        else:
+            mlflow_extensions = f"mlflow-extensions=={mlflow_extensions_version}"
+        return [*self.engine_pip_reqs(**kwargs), f"filelock=={filelock_version}", mlflow_extensions]
 
     @abc.abstractmethod
     def engine_pip_reqs(self, **kwargs) -> List[str]:
