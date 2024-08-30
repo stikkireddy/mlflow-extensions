@@ -120,6 +120,41 @@ response = client.chat.completions.create(
 )
 ```
 
+#### Guided decoding into json
+
+Make sure you deploy a model with guided_decoding_backend configured. 
+The proper values are either outlines or lm-format-enforcer. Currently only supported by VLLMEngine.
+
+```python
+from mlflow_extensions.serving.adapters import OpenAIWrapper as OpenAI
+from pydantic import BaseModel
+
+class Data(BaseModel):
+  outside: bool
+  inside: bool
+
+client = OpenAI(base_url="https://<>.com/serving-endpoints/<model-name>", api_key="<dapi...>")
+response = client.chat.completions.create(
+  model="microsoft/Phi-3.5-vision-instruct",
+  messages=[
+    {"role": "user", "content": [
+                {"type": "text", "text": "Is the image indoors or outdoors?"},
+                {
+                    "type": "image_url",
+                    "image_url": {
+                      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Gfp-wisconsin-madison-the-nature-boardwalk.jpg/2560px-Gfp-wisconsin-madison-the-nature-boardwalk.jpg"
+                    },
+                },
+            ],
+     }
+  ],
+  #   if you want to use guided decoding to improve performance and control output
+  extra_body={
+    "guided_json": Data.schema()
+  }
+)
+```
+
 #### Calling a model using langchain ChatOpenAI sdk
 
 ```
