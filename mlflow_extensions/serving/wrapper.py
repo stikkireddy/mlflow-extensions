@@ -42,7 +42,7 @@ class CustomServingEnginePyfuncWrapper(mlflow.pyfunc.PythonModel):
         response = self._engine.oai_http_client.request(
             method=req.method,
             url=self._endpoint,
-            timeout=float(req.timeout),
+            timeout=req.timeout,
             content=req.payload
         )
         status_code = response.status_code

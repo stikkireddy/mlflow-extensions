@@ -47,6 +47,7 @@ class CustomMLFlowHttpClient(Client):
         self._custom_provided_base_path = urlparse(endpoint_url).path.rstrip("/")
         base_url = build_endpoint_url(endpoint_url)
         self._http_client = httpx.Client(base_url=base_url, headers=headers, timeout=timeout)
+        self._timeout = timeout
 
     def send(self, request: Request, **kwargs) -> Response:
         openai_path_to_request = request.url.path.replace(self._custom_provided_base_path, "")
@@ -55,9 +56,9 @@ class CustomMLFlowHttpClient(Client):
             request_path=openai_path_to_request,
             payload=content,
             method=request.method,
-            timeout=str(self.timeout),
+            timeout=self._timeout,
         )
-        content = {"inputs": [req.serialize()]}
+        content = {"inputs": [{"input": req.serialize()}]}
         response = self._http_client.post("/invocations", json=content)
         resp_data = ResponseMessageV1.deserialize(response.json()["predictions"][0])
         return Response(
