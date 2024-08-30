@@ -81,7 +81,7 @@ class OllamaEngineConfig(EngineConfig):
         download_model.wait_and_log()
         server.stop()
         return {
-            self.model_artifact_key: download_dir
+            self.model_artifact_key: str(download_dir.absolute())
         }
 
     def to_run_command(self, context: PythonModelContext = None) -> Union[List[str], Command]:
