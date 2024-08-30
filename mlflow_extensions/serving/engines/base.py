@@ -47,7 +47,7 @@ class Command:
                 env=self.env or os.environ.copy(),
                 preexec_fn=os.setsid,
                 stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
                 text=True,  # This will handle the output as text rather than bytes
                 bufsize=1  # Line-buffered
             )
@@ -71,10 +71,6 @@ class Command:
             # Stream and print stdout
             for line in self.active_process.stdout:
                 print(f"STDOUT: {line.strip()}")
-
-            # Stream and print stderr
-            for line in self.active_process.stderr:
-                print(f"STDERR: {line.strip()}")
 
             # Wait for the process to complete
             self.active_process.wait()
@@ -105,9 +101,11 @@ class Command:
             stdout, stderr = self.active_process.communicate()
             print("Timed out")
 
-        print('STDOUT:', stdout.decode())
-        print('STDERR:', stderr.decode())
-        print('Exit Code:', self.active_process.returncode)
+        try:
+            print('STDOUT:', stdout.decode())
+            print('STDERR:', stderr.decode())
+        finally:
+            print('Exit Code:', self.active_process.returncode)
 
 
 @dataclass(frozen=True, kw_only=True)
