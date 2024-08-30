@@ -96,7 +96,7 @@ from mlflow_extensions.serving.adapters import OpenAIWrapper as OpenAI
 
 client = OpenAI(base_url="https://<>.com/serving-endpoints/<model-name>", api_key="<dapi...>")
 response = client.chat.completions.create(
-  model="microsoft/Phi-3.5-vision-instruct",
+  model="gemma2:2b",
   messages=[
     {"role": "user", "content": "Hi how are you?"}
   ],
