@@ -77,7 +77,8 @@ class CustomServingEnginePyfuncWrapper(mlflow.pyfunc.PythonModel):
         self._engine.start_proc(context)
 
     def predict(self, context, model_input: List[List[str]], params=None) -> List[List[str]]:
-        if not isinstance(model_input, (list, dict)):
+        import numpy as np
+        if not isinstance(model_input, (list, dict, np.ndarray)):
             raise ValueError(f"model_input must be a list or dict but received: {type(model_input)}")
         if isinstance(model_input, dict):
             model_input = model_input.values()
@@ -92,20 +93,23 @@ class CustomServingEnginePyfuncWrapper(mlflow.pyfunc.PythonModel):
 
     @staticmethod
     def get_signature():
+        req = RequestMessageV1(
+            timeout=1,
+            payload="{}",
+            method="GET",
+            request_path="/chat/completions"
+        ).serialize()
+        resp = ResponseMessageV1(
+            request_method="GET",
+            request_timeout=1,
+            response_data="{}",
+            response_status_code=200,
+            response_content_type="application/json"
+        ).serialize()
+        import numpy as np
         return mlflow.models.infer_signature(
-            model_input=[RequestMessageV1(
-                timeout="1",
-                payload="{}",
-                method="GET",
-                request_path="/chat/completions"
-            ).serialize()],
-            model_output=[ResponseMessageV1(
-                request_method="GET",
-                request_timeout="1",
-                response_data="{}",
-                response_status_code=200,
-                response_content_type="application/json"
-            ).serialize()]
+            model_input=np.array([req]),
+            model_output=np.array([resp])
         )
 
     def setup(self, *, local_dir="/root/models"):
