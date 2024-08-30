@@ -33,7 +33,6 @@ class CustomMLFlowHttpClient(Client):
 
     def __init__(self, *, endpoint_url: str,
                  token: Optional[str] = None,
-                 model_name: Optional[str] = None,
                  timeout: int = 30):
         super().__init__()
         if validate_url_token(endpoint_url, token) is False:
@@ -68,15 +67,10 @@ def OpenAIWrapper(*args, **kwargs) -> 'OpenAI':
     if validate_url_token(base_url, api_key) is False:
         raise ValueError("You must provide an api_key")
 
-    if "model" not in kwargs:
-        raise ValueError("You must provide a model name, model=...")
-    model = kwargs["model"]
-
     from openai import OpenAI
     return OpenAI(*args, **kwargs, http_client=CustomMLFlowHttpClient(
         endpoint_url=base_url,
-        token=api_key,
-        model_name=model
+        token=api_key
     ))
 
 
