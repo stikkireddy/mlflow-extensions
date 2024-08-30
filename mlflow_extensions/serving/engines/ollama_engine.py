@@ -7,7 +7,7 @@ from typing import List, Dict, Union, Optional
 
 from mlflow.pyfunc import PythonModelContext
 
-from mlflow_extensions.serving.engines.base import EngineConfig, Command
+from mlflow_extensions.serving.engines.base import EngineConfig, Command, EngineProcess, debug_msg
 
 
 def download_and_extract(version: str = "0.3.8", download_dir: str = ".", extract_dir: str = "ollama") -> Optional[str]:
@@ -93,3 +93,18 @@ class OllamaEngineConfig(EngineConfig):
 
     def engine_pip_reqs(self, **kwargs) -> List[str]:
         return []
+
+
+class OllamaEngineProcess(EngineProcess):
+
+    @property
+    def engine_name(self) -> str:
+        return "ollama-engine"
+
+    def health_check(self) -> bool:
+        try:
+            resp = self.server_http_client.get("/")
+            return resp.status_code == 200
+        except Exception as e:
+            debug_msg(f"Health check failed with error {e}; server may not be up yet or crashed;")
+            return False
