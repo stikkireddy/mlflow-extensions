@@ -22,14 +22,12 @@ class CustomServingEnginePyfuncWrapper(mlflow.pyfunc.PythonModel):
     def __init__(self,
                  *,
                  engine: Type[EngineProcess],
-                 engine_config: EngineConfig,
-                 endpoint="/chat/completions"):
+                 engine_config: EngineConfig):
         self._engine_klass: Type[EngineProcess] = engine
         self._engine_config: EngineConfig = engine_config
         self._engine: Optional[EngineProcess] = None
         # for convenience
         self._model_name = self._engine_config.model
-        self._endpoint = endpoint
         self._artifacts = None
 
     @property
@@ -41,7 +39,7 @@ class CustomServingEnginePyfuncWrapper(mlflow.pyfunc.PythonModel):
     def _request_model(self, req: RequestMessageV1):
         response = self._engine.oai_http_client.request(
             method=req.method,
-            url=self._endpoint,
+            url=req.request_path,
             timeout=req.timeout,
             content=req.payload
         )
@@ -55,21 +53,11 @@ class CustomServingEnginePyfuncWrapper(mlflow.pyfunc.PythonModel):
         ).serialize()
 
     @staticmethod
-    def iter_mlflow_predictions(response: Response) -> Iterator[CustomEngineServingResponse]:
+    def iter_mlflow_predictions(response: Response) -> Iterator[ResponseMessageV1]:
         mlflow_response = response.json()
         predictions = mlflow_response.get("predictions", [])
         for prediction in predictions:
-            prediction = json.loads(prediction)
-            data = prediction.get("data", "")
-            try:
-                prediction_data = json.loads(data)
-            except Exception as e:
-                debug_msg(f"failed to parse data; got error: {str(e)}")
-                prediction_data = data
-            yield CustomEngineServingResponse(
-                status=prediction.get("status"),
-                data=prediction_data
-            )
+            yield ResponseMessageV1.deserialize(prediction)
 
     def load_context(self, context: PythonModelContext):
         if self._engine is None:
