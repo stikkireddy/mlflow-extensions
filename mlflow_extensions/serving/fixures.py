@@ -71,7 +71,6 @@ class LocalTestServer:
                 print("endpoint not yet available")
             assert self._server_process.returncode is None, "Server process has terminated unexpectedly."
 
-
     def query(self, *, payload: Dict[str, Any]):
         return self._http_client.post("/invocations", json=payload)
 

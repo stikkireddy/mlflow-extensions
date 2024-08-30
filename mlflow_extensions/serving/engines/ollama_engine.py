@@ -126,3 +126,4 @@ class OllamaEngineProcess(EngineProcess):
         except Exception as e:
             debug_msg(f"Health check failed with error {e}; server may not be up yet or crashed;")
             return False
+
