@@ -9,6 +9,7 @@ testing pyfunc in databricks notebooks, and deploy complex llm server infrastruc
 
 1. Testing pyfunc models using `mlflow_extensions.serving.fixtures.LocalTestServer` in Databricks notebooks.
 2. Deploying vision models, etc using `mlflow_extensions.serving.engines.vllm_engine` in Databricks model serving.
+3. Deploy models using cpu via ollama engine.
 
 ## Installation
 
@@ -19,8 +20,8 @@ pip install mlflow-extensions
 ## Supported Server Frameworks
 
 1. vLLM
-2. SGlang (tbd)
-3. Ollama (tbd)
+2. Ollama 
+3. SGlang (WIP)
 
 ## Usage
 
@@ -47,6 +48,59 @@ local_server.wait_and_assert_healthy()
 # assert fixture.query(payload={"inputs": [....]}) == ...
 
 local_server.stop()
+```
+
+### Deploying Models using Ollama 
+
+Ollama is a optimized server that is optimized for running llms and multimodal lms. It supports llama.cpp as the backend
+to be able to run the models using cpu and ram. This documentation will be updated as we test more configurations.
+
+**Keep in mind databricks serving endpoints only have 4gb of memory per container.** [Link to docs.](https://docs.databricks.com/en/machine-learning/model-serving/model-serving-limits.html#limitations)
+
+#### Registering a model
+
+```python
+
+import mlflow
+
+from mlflow_extensions.serving.engines import OllamaEngineConfig, OllamaEngineProcess
+from mlflow_extensions.serving.wrapper import CustomServingEnginePyfuncWrapper
+
+mlflow.set_registry_uri("databricks-uc")
+
+model = CustomServingEnginePyfuncWrapper(
+    engine=OllamaEngineProcess,
+    engine_config=OllamaEngineConfig(
+        model="gemma2:2b",
+    )
+)
+
+model.setup() # this will download ollama and the model. it may take a while so let it run.
+
+with mlflow.start_run() as run:
+        mlflow.pyfunc.log_model(
+            "model",
+            python_model=model,
+            artifacts=model.artifacts,
+            pip_requirements=model.get_pip_reqs(),
+            registered_model_name="<catalog>.<schema>.<model-name>"
+        )
+```
+
+#### Calling a model using openai sdk
+
+Mlflow extensions offers a wrapper on top of openai sdk to intercept requests and conform them to model serving infra.
+
+```python
+from mlflow_extensions.serving.adapters import OpenAIWrapper as OpenAI
+
+client = OpenAI(base_url="https://<>.com/serving-endpoints/<model-name>", api_key="<dapi...>")
+response = client.chat.completions.create(
+  model="microsoft/Phi-3.5-vision-instruct",
+  messages=[
+    {"role": "user", "content": "Hi how are you?"}
+  ],
+)
 ```
 
 ### Deploying Models using vLLM 
@@ -123,7 +177,7 @@ response = client.chat.completions.create(
 #### Guided decoding into json
 
 Make sure you deploy a model with guided_decoding_backend configured. 
-The proper values are either outlines or lm-format-enforcer. Currently only supported by VLLMEngine.
+The proper values are either outlines or lm-format-enforcer. **Currently only supported by VLLMEngine.**
 
 ```python
 from mlflow_extensions.serving.adapters import OpenAIWrapper as OpenAI
