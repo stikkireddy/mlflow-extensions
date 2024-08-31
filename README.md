@@ -87,22 +87,6 @@ with mlflow.start_run() as run:
         )
 ```
 
-#### Calling a model using openai sdk
-
-Mlflow extensions offers a wrapper on top of openai sdk to intercept requests and conform them to model serving infra.
-
-```python
-from mlflow_extensions.serving.adapters import OpenAIWrapper as OpenAI
-
-client = OpenAI(base_url="https://<>.com/serving-endpoints/<model-name>", api_key="<dapi...>")
-response = client.chat.completions.create(
-  model="gemma2:2b",
-  messages=[
-    {"role": "user", "content": "Hi how are you?"}
-  ],
-)
-```
-
 ### Deploying Models using vLLM 
 
 vLLM is a optimized server that is optimized for running llms and multimodal lms. 
@@ -145,12 +129,40 @@ with mlflow.start_run() as run:
         )
 ```
 
-#### Calling a model using openai sdk
+### Calling models using openai compatible clients
+
+#### Calling a model using openai sdk with basic completion
+
+Mlflow extensions offers a wrapper on top of openai sdk to intercept requests and conform them to model serving infra.
+
+Supported engines:
+- [x] vLLM
+- [x] Ollama
+
+```python
+from mlflow_extensions.serving.compat.openai import OpenAI
+# if you need async client
+# from mlflow_extensions.serving.compat.openai import AsyncOpenAI
+
+client = OpenAI(base_url="https://<>.com/serving-endpoints/<model-name>", api_key="<dapi...>")
+response = client.chat.completions.create(
+  model="gemma2:2b",
+  messages=[
+    {"role": "user", "content": "Hi how are you?"}
+  ],
+)
+```
+
+#### Calling a model using openai sdk that supports multi modal inputs (vision)
+
+Supported engines:
+- [x] vLLM
+- [x] Ollama
 
 Mlflow extensions offers a wrapper on top of openai sdk to intercept requests and conform them to model serving infra.
 
 ```python
-from mlflow_extensions.serving.adapters import OpenAIWrapper as OpenAI
+from mlflow_extensions.serving.compat.openai import OpenAI
 
 client = OpenAI(base_url="https://<>.com/serving-endpoints/<model-name>", api_key="<dapi...>")
 response = client.chat.completions.create(
@@ -167,10 +179,6 @@ response = client.chat.completions.create(
             ],
      }
   ],
-  #   if you want to use guided decoding to improve performance and control output
-  # extra_body={
-  #   "guided_choice": ["outside", "indoors"]
-  # }
 )
 ```
 
@@ -180,7 +188,7 @@ Make sure you deploy a model with guided_decoding_backend configured.
 The proper values are either outlines or lm-format-enforcer. **Currently only supported by VLLMEngine.**
 
 ```python
-from mlflow_extensions.serving.adapters import OpenAIWrapper as OpenAI
+from mlflow_extensions.serving.compat.openai import OpenAI
 from pydantic import BaseModel
 
 class Data(BaseModel):
@@ -206,16 +214,61 @@ response = client.chat.completions.create(
   extra_body={
     "guided_json": Data.schema()
   }
+  #   if you want to use guided choice to select one of the choices
+  # extra_body={
+  #   "guided_choice": ["outside", "indoors"]
+  # }
 )
 ```
 
 #### Calling a model using langchain ChatOpenAI sdk
 
-```
-from mlflow_extensions.serving.adapters import ChatOpenAIWrapper as ChatOpenAI
+```python
+from mlflow_extensions.serving.compat.langchain import ChatOpenAI
+# if you want to use completions
+# from mlflow_extensions.serving.compat.langchain import OpenAI
 
-model = ChatOpenAI(base_url="https://<>.com/serving-endpoints/<model-name>", api_key="<dapi...>")
+model = ChatOpenAI(
+    model="gemma2:2b",
+    base_url="https://<>.com/serving-endpoints/<model-name>", 
+    api_key="<dapi...>"
+)
 model.invoke("hello world")
+```
+
+#### Calling a model using sglang sdk
+
+```python
+from sglang import function, system, user, assistant, gen, set_default_backend
+from mlflow_extensions.serving.compat.sglang import OpenAI
+
+
+@function
+def multi_turn_question(s, question_1, question_2):
+    s += system("You are a helpful assistant.")
+    s += user(question_1)
+    s += assistant(gen("answer_1", max_tokens=256))
+    s += user(question_2)
+    s += assistant(gen("answer_2", max_tokens=256))
+
+set_default_backend(
+    OpenAI(
+        model="gemma2:2b",
+        base_url="https://<>.com/serving-endpoints/<model-name>",
+        api_key="<dapi..."
+    )
+)
+    
+state = multi_turn_question.run(
+        question_1="What is the capital of the United States?",
+        question_2="List two local attractions there.",
+    )
+
+for m in state.messages():
+    print(m["role"], ":", m["content"])
+
+print("answer 1", state["answer_1"])
+print("answer 2", state["answer_2"])
 ```
 
 #### Supported models
@@ -227,6 +280,12 @@ Here are the list of supported models for vllm engine: https://docs.vllm.ai/en/l
 We have not tested all of them please raise a issue if there is one that does not work. 
 We will work on documenting models and configs. Please document the model, size, and config you used to deploy 
 where you ran into issues.
+
+##### Ollama engine
+
+Here are the list of supported models for ollama. [Link to model list.](https://ollama.com/library)
+
+**Keep in mind databricks serving endpoints only have 4gb of memory per container.** [Link to docs.](https://docs.databricks.com/en/machine-learning/model-serving/model-serving-limits.html#limitations)
 
 ## Disclaimer
 mlflow-extensions is not developed, endorsed not supported by Databricks. It is provided as-is; no warranty is derived from using this package. 
