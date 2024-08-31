@@ -58,7 +58,8 @@ class CustomServingEnginePyfuncWrapper(mlflow.pyfunc.PythonModel):
     def predict(self, context, model_input: List[List[str]], params=None) -> List[List[str]]:
         import numpy as np
         if not isinstance(model_input, (list, dict, np.ndarray, pd.DataFrame)):
-            raise ValueError(f"model_input must be a list, dict, numpy array, or dataframe but received: {type(model_input)}")
+            raise ValueError(
+                f"model_input must be a list, dict, numpy array, or dataframe but received: {type(model_input)}")
         if isinstance(model_input, dict):
             model_input = model_input.values()
         if isinstance(model_input, pd.DataFrame):
@@ -66,9 +67,14 @@ class CustomServingEnginePyfuncWrapper(mlflow.pyfunc.PythonModel):
             if len(model_input.columns) == 1:
                 model_input = model_input[model_input.columns[0]].values
             else:
-                raise ValueError(f"Dataframe must have only one column, but received {len(model_input.columns)} columns")
+                raise ValueError(
+                    f"Dataframe must have only one column, but received {len(model_input.columns)} columns")
         return [self._request_model(
-            MlflowPyfuncHttpxSerializer.deserialize_request(req, self._engine.oai_http_client.base_url)
+            MlflowPyfuncHttpxSerializer.deserialize_request(
+                req,
+                openai_base_url=self._engine.oai_http_client.base_url,
+                server_base_url=self._engine.server_http_client.base_url,
+            )
         ) for req in model_input]
 
     def _setup_artifacts(self, local_dir: str = "/root/models"):
