@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import List, Type, Optional, Iterator
 
 import mlflow
+import pandas as pd
 from httpx import Response, Request
 from mlflow.pyfunc import PythonModelContext
 from mlflow_extensions.serving.serde_v2 import MlflowPyfuncHttpxSerializer
@@ -56,10 +57,16 @@ class CustomServingEnginePyfuncWrapper(mlflow.pyfunc.PythonModel):
 
     def predict(self, context, model_input: List[List[str]], params=None) -> List[List[str]]:
         import numpy as np
-        if not isinstance(model_input, (list, dict, np.ndarray)):
-            raise ValueError(f"model_input must be a list or dict but received: {type(model_input)}")
+        if not isinstance(model_input, (list, dict, np.ndarray, pd.DataFrame)):
+            raise ValueError(f"model_input must be a list, dict, numpy array, or dataframe but received: {type(model_input)}")
         if isinstance(model_input, dict):
             model_input = model_input.values()
+        if isinstance(model_input, pd.DataFrame):
+            # check if its one column
+            if len(model_input.columns) == 1:
+                model_input = model_input[model_input.columns[0]].values
+            else:
+                raise ValueError(f"Dataframe must have only one column, but received {len(model_input.columns)} columns")
         return [self._request_model(
             MlflowPyfuncHttpxSerializer.deserialize_request(req, self._engine.oai_http_client.base_url)
         ) for req in model_input]
