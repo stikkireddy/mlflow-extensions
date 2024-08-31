@@ -6,7 +6,7 @@ from typing import List, Type, Optional, Iterator
 import mlflow
 from httpx import Response, Request
 from mlflow.pyfunc import PythonModelContext
-from mlflow_extensions.serving.serdev2 import MlflowPyfuncHttpxSerializer
+from mlflow_extensions.serving.serde_v2 import MlflowPyfuncHttpxSerializer
 
 from mlflow_extensions.serving.engines.base import EngineProcess, debug_msg, EngineConfig
 from mlflow_extensions.serving.serde import ResponseMessageV1
