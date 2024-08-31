@@ -5,7 +5,7 @@ from urllib.parse import urlparse
 import httpx
 from httpx import Client, Request, Response, AsyncClient
 
-from mlflow_extensions.serving.serde import RequestMessageV1, ResponseMessageV1
+from mlflow_extensions.serving.serde_v2 import MlflowPyfuncHttpxSerializer
 
 
 def is_local(url: str) -> bool:
@@ -27,80 +27,58 @@ def build_endpoint_url(url: str) -> str:
     return normalized_url
 
 
-class CustomMLFlowHttpClient(Client):
-
-    def __init__(self, *, endpoint_url: str,
-                 token: Optional[str] = None,
-                 timeout: int = 30):
-        super().__init__()
+class BaseCustomMLFlowHttpClient:
+    def __init__(self, *, endpoint_url: str, token: Optional[str] = None, timeout: int = 30):
         if validate_url_token(endpoint_url, token) is False:
             raise ValueError("You must provide a token unless the endpoint is localhost or 0.0.0.0")
+
         headers = {
             'Content-Type': 'application/json',
         }
         if token:
             headers['Authorization'] = f"Bearer {token}"
+
         self._custom_provided_base_path = urlparse(endpoint_url).path.rstrip("/")
         base_url = build_endpoint_url(endpoint_url)
-        self._http_client = httpx.Client(base_url=base_url, headers=headers, timeout=timeout)
         self._timeout = timeout
+        self._http_client_args = {
+            'base_url': base_url,
+            'headers': headers,
+            'timeout': timeout
+        }
+
+    def _prepare_request(self, request: Request) -> dict:
+        openai_path_to_request = request.url.path.replace(self._custom_provided_base_path, "")
+        return {"inputs": [MlflowPyfuncHttpxSerializer.serialize_request(request, openai_path_to_request)]}
+
+    @staticmethod
+    def _process_response(response_json: dict) -> Response:
+        prediction = response_json["predictions"][0]
+        return MlflowPyfuncHttpxSerializer.deserialize_response(prediction)
+
+
+class CustomMLFlowHttpClient(BaseCustomMLFlowHttpClient, Client):
+    def __init__(self, **kwargs):
+        BaseCustomMLFlowHttpClient.__init__(self, **kwargs)
+        Client.__init__(self)
+        self._http_client = httpx.Client(**self._http_client_args)
 
     def send(self, request: Request, **kwargs) -> Response:
-        openai_path_to_request = request.url.path.replace(self._custom_provided_base_path, "")
-        content = request.content.decode("utf-8")
-        req = RequestMessageV1(
-            request_path=openai_path_to_request,
-            payload=content,
-            method=request.method,
-            timeout=self._timeout,
-        )
-        inputs = {"inputs": [req.serialize()]}
+        inputs = self._prepare_request(request)
         response = self._http_client.post("/invocations", json=inputs)
-        resp_data = ResponseMessageV1.deserialize(response.json()["predictions"][0])
-        return Response(
-            request=response.request,
-            status_code=resp_data.response_status_code,
-            headers={"Content-Type": resp_data.response_content_type},
-            content=resp_data.response_data
-        )
+        return self._process_response(response.json())
 
 
-class AsyncCustomMLFlowHttpClient(AsyncClient):
-
-    def __init__(self, *, endpoint_url: str,
-                 token: Optional[str] = None,
-                 timeout: int = 30):
-        super().__init__()
-        if validate_url_token(endpoint_url, token) is False:
-            raise ValueError("You must provide a token unless the endpoint is localhost or 0.0.0.0")
-        headers = {
-            'Content-Type': 'application/json',
-        }
-        if token:
-            headers['Authorization'] = f"Bearer {token}"
-        self._custom_provided_base_path = urlparse(endpoint_url).path.rstrip("/")
-        base_url = build_endpoint_url(endpoint_url)
-        self._http_client = httpx.AsyncClient(base_url=base_url, headers=headers, timeout=timeout)
-        self._timeout = timeout
+class AsyncCustomMLFlowHttpClient(BaseCustomMLFlowHttpClient, AsyncClient):
+    def __init__(self, **kwargs):
+        BaseCustomMLFlowHttpClient.__init__(self, **kwargs)
+        AsyncClient.__init__(self)
+        self._http_client = httpx.AsyncClient(**self._http_client_args)
 
     async def send(self, request: Request, **kwargs) -> Response:
-        openai_path_to_request = request.url.path.replace(self._custom_provided_base_path, "")
-        content = request.content.decode("utf-8")
-        req = RequestMessageV1(
-            request_path=openai_path_to_request,
-            payload=content,
-            method=request.method,
-            timeout=self._timeout,
-        )
-        content = {"inputs": [req.serialize()]}
-        response = await self._http_client.post("/invocations", json=content)
-        resp_data = ResponseMessageV1.deserialize(response.json()["predictions"][0])
-        return Response(
-            request=response.request,
-            status_code=resp_data.response_status_code,
-            headers={"Content-Type": resp_data.response_content_type},
-            content=resp_data.response_data
-        )
+        inputs = self._prepare_request(request)
+        response = await self._http_client.post("/invocations", json=inputs)
+        return self._process_response(response.json())
 
 
 def inject_mlflow_openai_compat_client(

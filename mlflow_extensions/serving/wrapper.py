@@ -1,14 +1,15 @@
-import json
+from dataclasses import dataclass
 from dataclasses import dataclass
 from pathlib import Path
 from typing import List, Type, Optional, Iterator
 
 import mlflow
-from httpx import Response
+from httpx import Response, Request
 from mlflow.pyfunc import PythonModelContext
+from mlflow_extensions.serving.serdev2 import MlflowPyfuncHttpxSerializer
 
 from mlflow_extensions.serving.engines.base import EngineProcess, debug_msg, EngineConfig
-from mlflow_extensions.serving.serde import RequestMessageV1, ResponseMessageV1
+from mlflow_extensions.serving.serde import ResponseMessageV1
 
 
 @dataclass
@@ -37,21 +38,9 @@ class CustomServingEnginePyfuncWrapper(mlflow.pyfunc.PythonModel):
             raise ValueError("Artifacts not configured, run model.setup()")
         return self._artifacts
 
-    def _request_model(self, req: RequestMessageV1):
-        response = self._engine.oai_http_client.request(
-            method=req.method,
-            url=req.request_path,
-            timeout=req.timeout,
-            content=req.payload
-        )
-        status_code = response.status_code
-        return ResponseMessageV1(
-            request_method=req.method,
-            request_timeout=req.timeout,
-            response_data=response.text,
-            response_status_code=status_code,
-            response_content_type=response.headers.get("Content-Type", "")
-        ).serialize()
+    def _request_model(self, req: Request):
+        response = self._engine.oai_http_client.send(req)
+        return MlflowPyfuncHttpxSerializer.serialize_response(response)
 
     @staticmethod
     def iter_mlflow_predictions(response: Response) -> Iterator[ResponseMessageV1]:
@@ -71,7 +60,9 @@ class CustomServingEnginePyfuncWrapper(mlflow.pyfunc.PythonModel):
             raise ValueError(f"model_input must be a list or dict but received: {type(model_input)}")
         if isinstance(model_input, dict):
             model_input = model_input.values()
-        return [self._request_model(RequestMessageV1.deserialize(req)) for req in model_input]
+        return [self._request_model(
+            MlflowPyfuncHttpxSerializer.deserialize_request(req, self._engine.oai_http_client.base_url)
+        ) for req in model_input]
 
     def _setup_artifacts(self, local_dir: str = "/root/models"):
         self._artifacts = self._engine_config.setup_artifacts(local_dir)
@@ -79,27 +70,6 @@ class CustomServingEnginePyfuncWrapper(mlflow.pyfunc.PythonModel):
 
     def get_pip_reqs(self, **kwargs):
         return self._engine_config.default_pip_reqs(**kwargs)
-
-    @staticmethod
-    def get_signature():
-        req = RequestMessageV1(
-            timeout=1,
-            payload="{}",
-            method="GET",
-            request_path="/chat/completions"
-        ).serialize()
-        resp = ResponseMessageV1(
-            request_method="GET",
-            request_timeout=1,
-            response_data="{}",
-            response_status_code=200,
-            response_content_type="application/json"
-        ).serialize()
-        import numpy as np
-        return mlflow.models.infer_signature(
-            model_input=np.array([req]),
-            model_output=np.array([resp])
-        )
 
     def setup(self, *, local_dir=None):
         if local_dir is None:

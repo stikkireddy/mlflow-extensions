@@ -116,8 +116,15 @@ class EngineConfig(abc.ABC):
     openai_api_path: int = field(default="v1")
 
     @abc.abstractmethod
-    def to_run_command(self, context: PythonModelContext = None) -> Union[List[str], Command]:
+    def _to_run_command(self, context: PythonModelContext = None) -> Union[List[str], Command]:
         pass
+
+    def to_run_command(self, context: PythonModelContext = None) -> Union[List[str], Command]:
+        command = self._to_run_command(context)
+        if isinstance(command, list):
+            # ensure all items are strings
+            return [str(item) for item in command]
+        return command
 
     def default_pip_reqs(self, *,
                          filelock_version: str = "3.15.4",
@@ -200,8 +207,7 @@ class EngineProcess(abc.ABC):
                 proc_env = {"HOST": self.config.host, "PORT": str(self.config.host)}
                 command = self.config.to_run_command(context)
                 if isinstance(command, list):
-                    self._proc = subprocess.Popen(self.config.to_run_command(context),
-                                                  env=proc_env)
+                    self._proc = subprocess.Popen(command, env=proc_env)
                 elif isinstance(command, Command):
                     command.start()
 

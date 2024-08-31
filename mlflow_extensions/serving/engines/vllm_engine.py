@@ -78,7 +78,7 @@ class VLLMEngineConfig(EngineConfig):
             *flags,
         ]
 
-    def to_run_command(self, context: PythonModelContext = None) -> Union[List[str], Command]:
+    def _to_run_command(self, context: PythonModelContext = None) -> Union[List[str], Command]:
         return self._to_vllm_command(context=context)
 
     def engine_pip_reqs(self, *,

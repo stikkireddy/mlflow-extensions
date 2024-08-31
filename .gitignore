@@ -348,3 +348,5 @@ chainlit.md
 .dbtunnel
 
 .python-version
+*.txt.lock
+mlruns

@@ -68,25 +68,18 @@ class LocalTestServer:
                     print("Success")
                     break
             except Exception as e:
-                print("endpoint not yet available")
+                print(f"endpoint not yet available; health check error {str(e)}")
             assert self._server_process.returncode is None, "Server process has terminated unexpectedly."
 
     def query(self, *, payload: Dict[str, Any], timeout: int = 30):
         return self._http_client.post("/invocations", json=payload, timeout=timeout)
 
     def stop(self):
-        # Send SIGTERM to the subprocess
         os.killpg(os.getpgid(self._server_process.pid), signal.SIGTERM)
-
-        # Wait for a short while and check if the process has terminated
         time.sleep(5)
         if self._server_process.poll() is None:
-            # If still running, send SIGKILL
             os.killpg(os.getpgid(self._server_process.pid), signal.SIGKILL)
-
-        # # Optionally, wait for the process to terminate and get its exit status
         try:
-            # Wait for the process to terminate, with a timeout
             stdout, stderr = self._server_process.communicate(timeout=10)
         except subprocess.TimeoutExpired:
             stdout, stderr = self._server_process.communicate()
