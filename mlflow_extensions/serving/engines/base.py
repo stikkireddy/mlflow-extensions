@@ -209,7 +209,12 @@ class EngineProcess(abc.ABC):
         proc_env = {"HOST": self.config.host, "PORT": str(self.config.host)}
         command = self.config.to_run_command(context)
         if isinstance(command, list):
-            self._proc = subprocess.Popen(command, env=proc_env)
+            self._proc = subprocess.Popen(command,
+                                          env=proc_env,
+                                          stdout=subprocess.PIPE,
+                                          stderr=subprocess.PIPE,
+                                          # ensure process is in another process group / session
+                                          preexec_fn=os.setsid,)
         elif isinstance(command, Command):
             command.start()
 
