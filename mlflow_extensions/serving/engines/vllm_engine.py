@@ -20,7 +20,7 @@ class VLLMEngineConfig(EngineConfig):
     trust_remote_code: bool = field(default=False)
     max_model_len: Optional[int] = field(default=None)
     served_model_alias: Optional[str] = field(default=None)
-    guided_decoding_backend: Optional[str] = field(default=None)
+    guided_decoding_backend: Optional[str] = field(default="outlines")
     model_artifact_key: str = field(default="model")
     verify_chat_template: bool = field(default=True)
     tokenizer_config_file: str = field(default="tokenizer_config.json")
