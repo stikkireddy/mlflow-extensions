@@ -205,6 +205,15 @@ class EngineProcess(abc.ABC):
             if self.is_process_healthy() is True:
                 subprocess.run(f"kill $(lsof -t -i:{self.config.port})", shell=True)
 
+    def _is_process_running(self):
+        if self._proc is None:
+            return False
+        try:
+            process = psutil.Process(self._proc.pid)
+            return process.is_running() and process.status() != psutil.STATUS_ZOMBIE
+        except psutil.NoSuchProcess:
+            return False
+
     def _spawn_server_proc(self, context: PythonModelContext = None):
         proc_env = {"HOST": self.config.host, "PORT": str(self.config.host)}
         command = self.config.to_run_command(context)
@@ -216,7 +225,7 @@ class EngineProcess(abc.ABC):
         elif isinstance(command, Command):
             command.start()
 
-        while self.is_process_healthy() is False:
+        while self.is_process_healthy() is False and self._is_process_running() is True:
             debug_msg(f"Waiting for {self.engine_name} to start")
             time.sleep(1)
 
@@ -235,8 +244,7 @@ class EngineProcess(abc.ABC):
                 debug_msg(f"Max respawn attempts reached for {self.engine_name}. Restart serving endpoint.")
                 break
             try:
-                process = psutil.Process(self._proc.pid)
-                if process.is_running() is True:
+                if self._is_process_running():
                     time.sleep(health_check_frequency_seconds)
                 else:
                     self._spawn_server_proc(context)
