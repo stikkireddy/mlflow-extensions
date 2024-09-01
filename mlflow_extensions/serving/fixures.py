@@ -17,6 +17,17 @@ if typing.TYPE_CHECKING:
     from openai import OpenAI
 
 
+class FixedSizeLogQueue(queue.Queue):
+    def __init__(self, max_size: int = 10000):
+        # support at most 10000 log-lines
+        super().__init__(maxsize=max_size)
+
+    def put(self, item, block=True, timeout=None):
+        if self.full():
+            self.get_nowait()
+        super().put(item, block, timeout)
+
+
 class LocalTestServer:
 
     def __init__(self, *, model_uri: str,
@@ -36,7 +47,7 @@ class LocalTestServer:
 
         self._server_process = None
         self._http_client = httpx.Client(base_url=f"http://{self._test_serving_host}:{self._test_serving_port}")
-        self._log_queue = queue.Queue()
+        self._log_queue = FixedSizeLogQueue(max_size=10000)
 
     def start(self):
         try:

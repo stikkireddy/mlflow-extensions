@@ -6,9 +6,11 @@ import socket
 import subprocess
 import time
 from dataclasses import field, dataclass
+from threading import Thread
 from typing import List, Optional, Dict, Union
 
 import httpx
+import psutil
 from filelock import FileLock
 from mlflow.pyfunc import PythonModelContext
 
@@ -130,6 +132,7 @@ class EngineConfig(abc.ABC):
     def default_pip_reqs(self, *,
                          filelock_version: str = "3.15.4",
                          httpx_version: str = "0.27.0",
+                         psutil_version: str = "6.0.0",
                          mlflow_extensions_version: str = None,
                          **kwargs) -> List[str]:
 
@@ -138,7 +141,7 @@ class EngineConfig(abc.ABC):
             mlflow_extensions = "mlflow-extensions"
         else:
             mlflow_extensions = f"mlflow-extensions=={mlflow_extensions_version}"
-        return [f"httpx=={httpx_version}", *self.engine_pip_reqs(**kwargs),
+        return [f"httpx=={httpx_version}", f"psutil=={psutil_version}", *self.engine_pip_reqs(**kwargs),
                 f"filelock=={filelock_version}", mlflow_extensions]
 
     @abc.abstractmethod
@@ -168,6 +171,7 @@ class EngineProcess(abc.ABC):
             timeout=300
         )
         self._proc = None
+        self._health_check_thread = None
 
     @property
     def oai_http_client(self) -> httpx.Client:
@@ -201,6 +205,44 @@ class EngineProcess(abc.ABC):
             if self.is_process_healthy() is True:
                 subprocess.run(f"kill $(lsof -t -i:{self.config.port})", shell=True)
 
+    def _spawn_server_proc(self, context: PythonModelContext = None):
+        proc_env = {"HOST": self.config.host, "PORT": str(self.config.host)}
+        command = self.config.to_run_command(context)
+        if isinstance(command, list):
+            self._proc = subprocess.Popen(command, env=proc_env)
+        elif isinstance(command, Command):
+            command.start()
+
+        while self.is_process_healthy() is False:
+            debug_msg(f"Waiting for {self.engine_name} to start")
+            time.sleep(1)
+
+    def ensure_server_is_running(self, pid: int,
+                                 context: PythonModelContext = None,
+                                 health_check_frequency_seconds: int = 10,
+                                 max_respawn_attempts: int = 3):
+
+        attempt_count = 0
+        # check if pid is still running
+        while True:
+            if attempt_count > max_respawn_attempts:
+                debug_msg(f"Max respawn attempts reached for {self.engine_name}. Restart serving endpoint.")
+                break
+            try:
+                process = psutil.Process(pid)
+                if process.is_running() is True:
+                    time.sleep(health_check_frequency_seconds)
+                else:
+                    self._spawn_server_proc(context)
+                    if self.health_check() is False:
+                        debug_msg(f"Health check failed after respawn.")
+                        attempt_count += 1
+            except psutil.NoSuchProcess:
+                self._spawn_server_proc(context)
+                if self.health_check() is False:
+                    debug_msg(f"Health check failed after respawn.")
+                    attempt_count += 1
+
     # todo add local lora paths
     def start_proc(self, context: PythonModelContext = None):
         # kill process in port if already running
@@ -209,15 +251,11 @@ class EngineProcess(abc.ABC):
         with self._lock:
             debug_msg(f"Acquired Lock")
             if self.health_check() is False:
-                proc_env = {"HOST": self.config.host, "PORT": str(self.config.host)}
-                command = self.config.to_run_command(context)
-                if isinstance(command, list):
-                    self._proc = subprocess.Popen(command, env=proc_env)
-                elif isinstance(command, Command):
-                    command.start()
-
-                while self.is_process_healthy() is False:
-                    debug_msg(f"Waiting for {self.engine_name} to start")
-                    time.sleep(1)
+                self._spawn_server_proc(context)
+                self._health_check_thread = Thread(
+                    target=self.ensure_server_is_running,
+                    args=(self._proc.pid, context)
+                )
+                self._health_check_thread.start()
             else:
                 debug_msg(f"{self.engine_name} already running")
