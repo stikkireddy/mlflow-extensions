@@ -1,3 +1,4 @@
+import json
 import sys
 from dataclasses import field, dataclass
 from pathlib import Path
@@ -23,6 +24,9 @@ class SglangEngineConfig(EngineConfig):
     verify_chat_template: bool = field(default=True)
     tokenizer_config_file: str = field(default="tokenizer_config.json")
     chat_template_key: str = field(default="chat_template")
+    chat_template_builtin_name: str = field(default=None)
+    chat_template_json: dict = field(default=None)
+    chat_template_file_name: str = field(default="sglang_custom_chat_template.json")
 
     def _to_sglang_command(self, context: PythonModelContext = None) -> List[str]:
         local_model_path = None
@@ -40,7 +44,8 @@ class SglangEngineConfig(EngineConfig):
                       "--context-length",
                       "--trust-remote-code",
                       "--served-model-name",
-                      "--quantization"]
+                      "--quantization",
+                      "--chat-template"]
         for k, v in self.sglang_command_flags.items():
             if k in skip_flags:
                 debug_msg(f"Skipping flag {k} use the built in argument")
@@ -68,6 +73,14 @@ class SglangEngineConfig(EngineConfig):
             ]:
                 raise ValueError(f"Invalid quantization {self.quantization}")
             flags.append(self.quantization)
+        if self.chat_template_json or self.chat_template_builtin_name:
+            flags.append("--chat-template")
+            if self.chat_template_builtin_name:
+                flags.append(self.chat_template_builtin_name)
+            else:
+                with open(self.chat_template_file_name, "w") as f:
+                    f.write(json.dumps(self.chat_template_json))
+                flags.append(self.chat_template_file_name)
 
         return [
             sys.executable,
