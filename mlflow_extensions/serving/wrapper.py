@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from dataclasses import dataclass
 from pathlib import Path
 from typing import List, Type, Optional, Iterator
 
@@ -7,10 +6,10 @@ import mlflow
 import pandas as pd
 from httpx import Response, Request
 from mlflow.pyfunc import PythonModelContext
-from mlflow_extensions.serving.serde_v2 import MlflowPyfuncHttpxSerializer
 
 from mlflow_extensions.serving.engines.base import EngineProcess, debug_msg, EngineConfig
 from mlflow_extensions.serving.serde import ResponseMessageV1
+from mlflow_extensions.serving.serde_v2 import MlflowPyfuncHttpxSerializer
 
 
 @dataclass

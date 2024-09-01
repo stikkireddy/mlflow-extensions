@@ -17,6 +17,9 @@ class MockEngineConfig(EngineConfig):
     def setup_artifacts(self, local_dir: str = "/root/models") -> Dict[str, str]:
         return {}
 
+    def supported_models(self) -> List[str]:
+        return []
+
 
 class MockEngineProcess(EngineProcess):
     @property

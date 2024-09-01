@@ -114,6 +114,7 @@ class EngineConfig(abc.ABC):
     host: str = field(default="0.0.0.0")
     port: int = field(default=9989)
     openai_api_path: int = field(default="v1")
+    ensure_supported_models: bool = field(default=True)
 
     @abc.abstractmethod
     def _to_run_command(self, context: PythonModelContext = None) -> Union[List[str], Command]:
@@ -146,6 +147,10 @@ class EngineConfig(abc.ABC):
 
     @abc.abstractmethod
     def setup_artifacts(self, local_dir: str = "/root/models") -> Dict[str, str]:
+        pass
+
+    @abc.abstractmethod
+    def supported_models(self) -> List[str]:
         pass
 
 

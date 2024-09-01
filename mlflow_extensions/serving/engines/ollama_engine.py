@@ -113,6 +113,9 @@ class OllamaEngineConfig(EngineConfig):
     def engine_pip_reqs(self, **kwargs) -> List[str]:
         return []
 
+    def supported_models(self) -> List[str]:
+        return []
+
 
 class OllamaEngineProcess(EngineProcess):
 
