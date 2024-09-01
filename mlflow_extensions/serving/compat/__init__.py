@@ -3,7 +3,7 @@ from typing import Optional
 from urllib.parse import urlparse
 
 import httpx
-from httpx import Client, Request, Response, AsyncClient
+from httpx import Client, Request, Response, AsyncClient, URL
 
 from mlflow_extensions.serving.serde_v2 import MlflowPyfuncHttpxSerializer
 
@@ -28,7 +28,13 @@ def build_endpoint_url(url: str) -> str:
 
 
 class BaseCustomMLFlowHttpClient:
-    def __init__(self, *, endpoint_url: str, token: Optional[str] = None, timeout: int = 30):
+    def __init__(
+            self, *,
+            endpoint_url: str,
+            token: Optional[str] = None,
+            timeout: int = 30,
+            requires_openai_compat: bool = True
+    ):
         if validate_url_token(endpoint_url, token) is False:
             raise ValueError("You must provide a token unless the endpoint is localhost or 0.0.0.0")
 
@@ -46,10 +52,18 @@ class BaseCustomMLFlowHttpClient:
             'headers': headers,
             'timeout': timeout
         }
+        self.requires_openai_compat = requires_openai_compat
 
     def _prepare_request(self, request: Request) -> dict:
-        openai_path_to_request = request.url.path.replace(self._custom_provided_base_path, "")
-        return {"inputs": [MlflowPyfuncHttpxSerializer.serialize_request(request, openai_path_to_request)]}
+        url = request.url
+        if isinstance(request.url, str):
+            url = httpx.URL(request.url)
+        path_to_request = url.path.replace(self._custom_provided_base_path, "")
+        return {"inputs": [MlflowPyfuncHttpxSerializer.serialize_request(
+            request,
+            path_to_request,
+            requires_openai_compat=self.requires_openai_compat
+        )]}
 
     @staticmethod
     def _process_response(response_json: dict, orig_request: Request) -> Response:

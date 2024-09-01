@@ -4,9 +4,11 @@ import signal
 import subprocess
 import time
 import typing
+from threading import Thread
 from typing import Optional, List, Dict, Any
 
 import httpx
+import queue
 
 from mlflow_extensions.serving.engines.base import debug_msg
 from mlflow_extensions.serving.serde_v2 import MlflowPyfuncHttpxSerializer
@@ -34,6 +36,7 @@ class LocalTestServer:
 
         self._server_process = None
         self._http_client = httpx.Client(base_url=f"http://{self._test_serving_host}:{self._test_serving_port}")
+        self._log_queue = queue.Queue()
 
     def start(self):
         try:
@@ -51,6 +54,28 @@ class LocalTestServer:
                                                 stderr=subprocess.PIPE,
                                                 preexec_fn=os.setsid,
                                                 env=current_env)
+        Thread(target=self._enqueue_output, args=(self._server_process.stdout, self._log_queue)).start()
+        Thread(target=self._enqueue_output, args=(self._server_process.stderr, self._log_queue)).start()
+
+    def _enqueue_output(self, pipe, q: queue.Queue):
+        for line in iter(pipe.readline, b''):
+            q.put(line)
+        pipe.close()
+
+    def _flush_current_logs(self, max_wait_time_seconds: int = 10):
+        time_start = time.time()
+
+        while True:
+            # ensure that we get to other parts of the code
+            if time.time() - time_start > max_wait_time_seconds:
+                break
+            try:
+                line = self._log_queue.get_nowait()
+                data = line.decode().strip()
+                if len(data) > 0:
+                    print(data)
+            except queue.Empty:
+                break
 
     def wait_and_assert_healthy(self):
         assert self._server_process is not None, "Server process has not been started."
@@ -60,6 +85,8 @@ class LocalTestServer:
                 self._server_process.communicate(timeout=5)
             except subprocess.TimeoutExpired:
                 pass
+
+            self._flush_current_logs()
 
             if self._server_process.returncode is not None:
                 stdout, stderr = self._server_process.communicate(timeout=10)
@@ -74,7 +101,7 @@ class LocalTestServer:
                     print("Success")
                     break
             except Exception as e:
-                print(f"endpoint not yet available; health check error {str(e)}")
+                print(f"[HEALTH_CHECK] endpoint not yet available; health check error {str(e)}")
             assert self._server_process.returncode is None, "Server process has terminated unexpectedly."
 
     def query(self, *, payload: Dict[str, Any], timeout: int = 30):
@@ -87,6 +114,7 @@ class LocalTestServer:
                             api_payload: Dict[str, Any] = None,
                             timeout: int = 30,
                             is_openai_compatible: bool = False):
+        self._flush_current_logs()
         orig_request = httpx.Request(
             method=method,
             url=f"http://{self._test_serving_host}:{self._test_serving_port}{http_path}",
@@ -103,15 +131,17 @@ class LocalTestServer:
         if response.status_code != 200:
             print(response.json())
         predictions = response.json()["predictions"]
+        self._flush_current_logs()
         return MlflowPyfuncHttpxSerializer.deserialize_response(predictions[0], orig_request)
 
     @property
-    def OpenAI(self) -> "OpenAI":
+    def openai_client(self) -> "OpenAI":
         from mlflow_extensions.serving.compat.openai import OpenAI
         return OpenAI(base_url=f"http://{self._test_serving_host}:{self._test_serving_port}/invocations",
                       api_key="foobar")
 
     def stop(self):
+        self._flush_current_logs()
         os.killpg(os.getpgid(self._server_process.pid), signal.SIGTERM)
         time.sleep(5)
         if self._server_process.poll() is None:
