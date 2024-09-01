@@ -203,11 +203,9 @@ class EngineProcess(abc.ABC):
 
     def stop_proc(self):
         with self._lock:
-            if self.is_process_healthy() is True:
-                subprocess.run(f"kill $(lsof -t -i:{self.config.port})", shell=True)
-        self._kill_active_proc()
-        self._proc = None
-        self._run_health_check = False
+            self._kill_active_proc()
+            self._proc = None
+            self._run_health_check = False
 
     def _is_process_running(self):
         if self._proc is None:
@@ -219,7 +217,10 @@ class EngineProcess(abc.ABC):
             return False
 
     def _kill_active_proc(self):
-        os.killpg(os.getpgid(self._proc.pid), signal.SIGKILL)
+        os.killpg(os.getpgid(self._proc.pid), signal.SIGTERM)
+        time.sleep(5)
+        if self._proc.poll() is None:
+            os.killpg(os.getpgid(self._proc.pid), signal.SIGKILL)
 
     def _spawn_server_proc(self, context: PythonModelContext = None):
         proc_env = {"HOST": self.config.host, "PORT": str(self.config.host)}
@@ -227,7 +228,6 @@ class EngineProcess(abc.ABC):
         if isinstance(command, list):
             self._proc = subprocess.Popen(command,
                                           env=proc_env,
-                                          # ensure process is in another process group / session
                                           preexec_fn=os.setsid,)
         elif isinstance(command, Command):
             command.start()
