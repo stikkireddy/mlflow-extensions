@@ -9,12 +9,14 @@ except ImportError as e:
     raise e
 
 
-def snapshot_download_local(repo_id: str, local_dir: str):
+def snapshot_download_local(repo_id: str, local_dir: str, tokenizer_only: bool = False):
     local_dir = local_dir.rstrip('/')
     model_local_path = f"{local_dir}/{repo_id}"
-    snapshot_download(repo_id=repo_id, local_dir=model_local_path)
+    kwargs = {}
+    if tokenizer_only:
+        kwargs["ignore_patterns"] = ["*.bin", "*.safetensors"]
+    snapshot_download(repo_id=repo_id, local_dir=model_local_path, **kwargs)
     return model_local_path
-
 
 def ensure_chat_template(tokenizer_file: str, chat_template_key: str = "chat_template"):
     tokenizer_file_path = Path(tokenizer_file)

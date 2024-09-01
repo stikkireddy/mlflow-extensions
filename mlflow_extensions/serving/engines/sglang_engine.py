@@ -19,8 +19,10 @@ class SglangEngineConfig(EngineConfig):
     context_length: Optional[int] = field(default=None)  # --context-length
     served_model_alias: Optional[str] = field(default=None)  # --served-model-name
     quantization: Optional[str] = field(default=None)  # --quantization
+    tokenizer_path: Optional[str] = field(default=None)  # --tokenizer-path
     # generic
     model_artifact_key: str = field(default="model")
+    tokenizer_artifact_key: str = field(default="tokenizer")
     verify_chat_template: bool = field(default=True)
     tokenizer_config_file: str = field(default="tokenizer_config.json")
     chat_template_key: str = field(default="chat_template")
@@ -30,8 +32,10 @@ class SglangEngineConfig(EngineConfig):
 
     def _to_sglang_command(self, context: PythonModelContext = None) -> List[str]:
         local_model_path = None
+        tokenizer_model_path = None
         if context is not None:
             local_model_path = context.artifacts.get(self.model_artifact_key)
+            tokenizer_model_path = context.artifacts.get(self.tokenizer_artifact_key)
         flags = []
 
         # add tensor parallel size flag if we have GPUs
@@ -44,6 +48,7 @@ class SglangEngineConfig(EngineConfig):
                       "--context-length",
                       "--trust-remote-code",
                       "--served-model-name",
+                      "--tokenizer-path",
                       "--quantization",
                       "--chat-template"]
         for k, v in self.sglang_command_flags.items():
@@ -81,6 +86,9 @@ class SglangEngineConfig(EngineConfig):
                 with open(self.chat_template_file_name, "w") as f:
                     f.write(json.dumps(self.chat_template_json))
                 flags.append(self.chat_template_file_name)
+        if self.tokenizer_path is not None:
+            flags.append("--tokenizer-path")
+            flags.append(tokenizer_model_path or self.tokenizer_path)
 
         return [
             sys.executable,
@@ -115,10 +123,22 @@ class SglangEngineConfig(EngineConfig):
 
     def _setup_artifacts(self, local_dir: str = "/root/models"):
         local_path = self._setup_snapshot(local_dir)
-        return {self.model_artifact_key: local_path}
+        # tokenizer path
+        artifacts = {self.model_artifact_key: local_path}
+        if self.tokenizer_path is not None and self.model != self.tokenizer_path:
+            tokenizer_local_path = snapshot_download_local(
+                repo_id=self.tokenizer_path,
+                local_dir=local_dir,
+                tokenizer_only=True
+            )
+            artifacts[self.tokenizer_artifact_key] = tokenizer_local_path
+        return artifacts
 
     def _verify_chat_template(self, artifacts: Dict[str, str]):
-        model_dir_path = Path(artifacts[self.model_artifact_key])
+        if self.tokenizer_path is None:
+            model_dir_path = Path(artifacts[self.model_artifact_key])
+        else:
+            model_dir_path = Path(artifacts[self.tokenizer_artifact_key])
         tokenizer_config_file = model_dir_path / self.tokenizer_config_file
         ensure_chat_template(tokenizer_file=str(tokenizer_config_file),
                              chat_template_key=self.chat_template_key)

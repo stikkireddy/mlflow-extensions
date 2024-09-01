@@ -21,18 +21,25 @@ class VLLMEngineConfig(EngineConfig):
     max_model_len: Optional[int] = field(default=None)
     served_model_alias: Optional[str] = field(default=None)
     guided_decoding_backend: Optional[str] = field(default="outlines")
+    tokenizer: Optional[str] = field(default=None)  # --tokenizer
+
+    # general keys
     model_artifact_key: str = field(default="model")
     verify_chat_template: bool = field(default=True)
+    tokenizer_artifact_key: str = field(default="tokenizer")
     tokenizer_config_file: str = field(default="tokenizer_config.json")
     chat_template_key: str = field(default="chat_template")
 
     def _to_vllm_command(self, context: PythonModelContext = None) -> List[str]:
         local_model_path = None
+        tokenizer_path = None
         if context is not None:
             local_model_path = context.artifacts.get(self.model_artifact_key)
+            tokenizer_path = context.artifacts.get(self.tokenizer_artifact_key)
         flags = []
         skip_flags = ["--enable-chunked-prefill",
                       "--model",
+                      "--tokenizer",
                       "--max-num-batched-tokens",
                       "--enable-prefix-caching",
                       "--max-model-len",
@@ -69,6 +76,9 @@ class VLLMEngineConfig(EngineConfig):
             if self.guided_decoding_backend not in ["outlines", "lm-format-enforcer"]:
                 raise ValueError(f"Invalid guided decoding backend {self.guided_decoding_backend}")
             flags.append(self.guided_decoding_backend)
+        if self.tokenizer is not None:
+            flags.append("--tokenizer")
+            flags.append(tokenizer_path or self.tokenizer)
 
         return [
             sys.executable,
@@ -104,10 +114,22 @@ class VLLMEngineConfig(EngineConfig):
 
     def _setup_artifacts(self, local_dir: str = "/root/models"):
         local_path = self._setup_snapshot(local_dir)
-        return {self.model_artifact_key: local_path}
+        # tokenizer path
+        artifacts = {self.model_artifact_key: local_path}
+        if self.tokenizer is not None and self.model != self.tokenizer:
+            tokenizer_local_path = snapshot_download_local(
+                repo_id=self.tokenizer,
+                local_dir=local_dir,
+                tokenizer_only=True
+            )
+            artifacts[self.tokenizer_artifact_key] = tokenizer_local_path
+        return artifacts
 
     def _verify_chat_template(self, artifacts: Dict[str, str]):
-        model_dir_path = Path(artifacts[self.model_artifact_key])
+        if self.tokenizer is None:
+            model_dir_path = Path(artifacts[self.model_artifact_key])
+        else:
+            model_dir_path = Path(artifacts[self.tokenizer_artifact_key])
         tokenizer_config_file = model_dir_path / self.tokenizer_config_file
         ensure_chat_template(tokenizer_file=str(tokenizer_config_file),
                              chat_template_key=self.chat_template_key)
