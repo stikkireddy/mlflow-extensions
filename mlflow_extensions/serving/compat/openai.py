@@ -1,7 +1,7 @@
 from mlflow_extensions.serving.compat import inject_mlflow_openai_compat_client
 
-MODULE = "langchain_openai"
-INSTALL = "langchain-openai"
+MODULE = "openai"
+INSTALL = "openai"
 
 try:
     from openai import OpenAI, AsyncOpenAI
