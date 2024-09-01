@@ -217,11 +217,14 @@ class EngineProcess(abc.ABC):
             debug_msg(f"Waiting for {self.engine_name} to start")
             time.sleep(1)
 
-    def ensure_server_is_running(self, pid: int,
+    def ensure_server_is_running(self,
+                                 *,
                                  context: PythonModelContext = None,
                                  health_check_frequency_seconds: int = 10,
                                  max_respawn_attempts: int = 3):
-
+        print(f"Ensuring {self.engine_name} is running for pid {self._proc.pid}")
+        if self._proc is None:
+            raise ValueError("Process not started yet. Run start_proc() first.")
         attempt_count = 0
         # check if pid is still running
         while True:
@@ -229,7 +232,7 @@ class EngineProcess(abc.ABC):
                 debug_msg(f"Max respawn attempts reached for {self.engine_name}. Restart serving endpoint.")
                 break
             try:
-                process = psutil.Process(pid)
+                process = psutil.Process(self._proc.pid)
                 if process.is_running() is True:
                     time.sleep(health_check_frequency_seconds)
                 else:
@@ -237,11 +240,15 @@ class EngineProcess(abc.ABC):
                     if self.health_check() is False:
                         debug_msg(f"Health check failed after respawn.")
                         attempt_count += 1
+                    else:
+                        attempt_count = 0
             except psutil.NoSuchProcess:
                 self._spawn_server_proc(context)
                 if self.health_check() is False:
                     debug_msg(f"Health check failed after respawn.")
                     attempt_count += 1
+                else:
+                    attempt_count = 0
 
     # todo add local lora paths
     def start_proc(self, context: PythonModelContext = None):
@@ -254,7 +261,9 @@ class EngineProcess(abc.ABC):
                 self._spawn_server_proc(context)
                 self._health_check_thread = Thread(
                     target=self.ensure_server_is_running,
-                    args=(self._proc.pid, context)
+                    kwargs={
+                        "context": context,
+                    }
                 )
                 self._health_check_thread.start()
             else:
