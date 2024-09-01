@@ -211,8 +211,6 @@ class EngineProcess(abc.ABC):
         if isinstance(command, list):
             self._proc = subprocess.Popen(command,
                                           env=proc_env,
-                                          stdout=subprocess.PIPE,
-                                          stderr=subprocess.PIPE,
                                           # ensure process is in another process group / session
                                           preexec_fn=os.setsid,)
         elif isinstance(command, Command):
