@@ -52,9 +52,9 @@ class BaseCustomMLFlowHttpClient:
         return {"inputs": [MlflowPyfuncHttpxSerializer.serialize_request(request, openai_path_to_request)]}
 
     @staticmethod
-    def _process_response(response_json: dict) -> Response:
+    def _process_response(response_json: dict, orig_request: Request) -> Response:
         prediction = response_json["predictions"][0]
-        return MlflowPyfuncHttpxSerializer.deserialize_response(prediction)
+        return MlflowPyfuncHttpxSerializer.deserialize_response(prediction, orig_request)
 
 
 class CustomMLFlowHttpClient(BaseCustomMLFlowHttpClient, Client):
@@ -66,7 +66,7 @@ class CustomMLFlowHttpClient(BaseCustomMLFlowHttpClient, Client):
     def send(self, request: Request, **kwargs) -> Response:
         inputs = self._prepare_request(request)
         response = self._http_client.post("/invocations", json=inputs)
-        return self._process_response(response.json())
+        return self._process_response(response.json(), request)
 
 
 class AsyncCustomMLFlowHttpClient(BaseCustomMLFlowHttpClient, AsyncClient):
@@ -78,7 +78,7 @@ class AsyncCustomMLFlowHttpClient(BaseCustomMLFlowHttpClient, AsyncClient):
     async def send(self, request: Request, **kwargs) -> Response:
         inputs = self._prepare_request(request)
         response = await self._http_client.post("/invocations", json=inputs)
-        return self._process_response(response.json())
+        return self._process_response(response.json(), request)
 
 
 def inject_mlflow_openai_compat_client(

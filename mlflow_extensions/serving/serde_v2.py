@@ -118,7 +118,7 @@ class MlflowPyfuncHttpxSerializer:
         return json.dumps(serialized)
 
     @staticmethod
-    def deserialize_response(serialized_response):
+    def deserialize_response(serialized_response, orig_request: Request = None):
         resp_data = json.loads(serialized_response)
 
         if resp_data[ResponseSerdeKeys.CONTENT_TYPE] == SerdeContentTypes.STREAM:
@@ -129,5 +129,6 @@ class MlflowPyfuncHttpxSerializer:
         return httpx.Response(
             status_code=resp_data[ResponseSerdeKeys.STATUS_CODE],
             headers=resp_data[ResponseSerdeKeys.HEADERS],
-            content=content
+            content=content,
+            request=orig_request
         )

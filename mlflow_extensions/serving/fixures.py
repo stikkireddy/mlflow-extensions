@@ -1,12 +1,18 @@
+import json
 import os
 import signal
 import subprocess
 import time
+import typing
 from typing import Optional, List, Dict, Any
 
 import httpx
 
 from mlflow_extensions.serving.engines.base import debug_msg
+from mlflow_extensions.serving.serde_v2 import MlflowPyfuncHttpxSerializer
+
+if typing.TYPE_CHECKING:
+    from openai import OpenAI
 
 
 class LocalTestServer:
@@ -73,6 +79,37 @@ class LocalTestServer:
 
     def query(self, *, payload: Dict[str, Any], timeout: int = 30):
         return self._http_client.post("/invocations", json=payload, timeout=timeout)
+
+    def query_custom_server(self, *,
+                            method: str,
+                            http_path: str,
+                            headers: dict = None,
+                            api_payload: Dict[str, Any] = None,
+                            timeout: int = 30,
+                            is_openai_compatible: bool = False):
+        orig_request = httpx.Request(
+            method=method,
+            url=f"http://{self._test_serving_host}:{self._test_serving_port}{http_path}",
+            headers=headers or {},
+            content=json.dumps(api_payload) if api_payload else None
+        )
+        response = self._http_client.post("/invocations", json={
+            "inputs": [MlflowPyfuncHttpxSerializer.serialize_request(
+                request=orig_request,
+                url_path_to_request=http_path,
+                requires_openai_compat=is_openai_compatible
+            )]
+        }, timeout=timeout)
+        if response.status_code != 200:
+            print(response.json())
+        predictions = response.json()["predictions"]
+        return MlflowPyfuncHttpxSerializer.deserialize_response(predictions[0], orig_request)
+
+    @property
+    def OpenAI(self) -> "OpenAI":
+        from mlflow_extensions.serving.compat.openai import OpenAI
+        return OpenAI(base_url=f"http://{self._test_serving_host}:{self._test_serving_port}/invocations",
+                      api_key="foobar")
 
     def stop(self):
         os.killpg(os.getpgid(self._server_process.pid), signal.SIGTERM)
