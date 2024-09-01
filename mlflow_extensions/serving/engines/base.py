@@ -171,6 +171,7 @@ class EngineProcess(abc.ABC):
             timeout=300
         )
         self._proc = None
+        self._run_health_check = None
         self._health_check_thread = None
 
     @property
@@ -204,6 +205,9 @@ class EngineProcess(abc.ABC):
         with self._lock:
             if self.is_process_healthy() is True:
                 subprocess.run(f"kill $(lsof -t -i:{self.config.port})", shell=True)
+        self._kill_active_proc()
+        self._proc = None
+        self._run_health_check = False
 
     def _is_process_running(self):
         if self._proc is None:
@@ -213,6 +217,9 @@ class EngineProcess(abc.ABC):
             return process.is_running() and process.status() != psutil.STATUS_ZOMBIE
         except psutil.NoSuchProcess:
             return False
+
+    def _kill_active_proc(self):
+        os.killpg(os.getpgid(self._proc.pid), signal.SIGKILL)
 
     def _spawn_server_proc(self, context: PythonModelContext = None):
         proc_env = {"HOST": self.config.host, "PORT": str(self.config.host)}
@@ -243,10 +250,16 @@ class EngineProcess(abc.ABC):
             if attempt_count > max_respawn_attempts:
                 debug_msg(f"Max respawn attempts reached for {self.engine_name}. Restart serving endpoint.")
                 break
+            if self._run_health_check is not True:
+                break
             try:
                 if self._is_process_running():
                     time.sleep(health_check_frequency_seconds)
                 else:
+                    process = psutil.Process(self._proc.pid)
+                    if process.status() == psutil.STATUS_ZOMBIE:
+                        debug_msg(f"Process: {self._proc.pid} is zombie. Killing process.")
+                        self._kill_active_proc()
                     self._spawn_server_proc(context)
                     if self.health_check() is False:
                         debug_msg(f"Health check failed after respawn.")
@@ -270,12 +283,14 @@ class EngineProcess(abc.ABC):
             debug_msg(f"Acquired Lock")
             if self.health_check() is False:
                 self._spawn_server_proc(context)
+                self._run_health_check = True
                 self._health_check_thread = Thread(
                     target=self.ensure_server_is_running,
                     kwargs={
                         "context": context,
                     }
                 )
-                self._health_check_thread.start()
+                if self._health_check_thread is not None:
+                    self._health_check_thread.start()
             else:
                 debug_msg(f"{self.engine_name} already running")
