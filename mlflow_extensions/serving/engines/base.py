@@ -124,6 +124,7 @@ class EngineConfig(abc.ABC):
 
     def to_run_command(self, context: PythonModelContext = None) -> Union[List[str], Command]:
         command = self._to_run_command(context)
+        debug_msg(f"Command: {command}")
         if isinstance(command, list):
             # ensure all items are strings
             return [str(item) for item in command]

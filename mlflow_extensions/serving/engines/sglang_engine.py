@@ -38,6 +38,10 @@ class SglangEngineConfig(EngineConfig):
             tokenizer_model_path = context.artifacts.get(self.tokenizer_artifact_key)
         flags = []
 
+        if self.tokenizer_path is not None:
+            flags.append("--tokenizer-path")
+            flags.append(tokenizer_model_path if tokenizer_model_path is not None else self.tokenizer_path)
+
         # add tensor parallel size flag if we have GPUs
         gpu_count = gpu_utils.get_gpu_count()
         if gpu_count >= 1:
@@ -86,9 +90,6 @@ class SglangEngineConfig(EngineConfig):
                 with open(self.chat_template_file_name, "w") as f:
                     f.write(json.dumps(self.chat_template_json))
                 flags.append(self.chat_template_file_name)
-        if self.tokenizer_path is not None:
-            flags.append("--tokenizer-path")
-            flags.append(tokenizer_model_path or self.tokenizer_path)
 
         return [
             sys.executable,
