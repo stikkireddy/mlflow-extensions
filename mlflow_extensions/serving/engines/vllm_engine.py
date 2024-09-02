@@ -140,8 +140,59 @@ class VLLMEngineConfig(EngineConfig):
             self._verify_chat_template(artifacts)
         return artifacts
 
-    def supported_models(self) -> List[str]:
-        return []
+    def supported_model_architectures(self) -> List[str]:
+        return [
+            'AquilaForCausalLM',
+            'ArcticForCausalLM',
+            'BaiChuanForCausalLM',
+            'BloomForCausalLM',
+            'ChatGLMModel',
+            'CohereForCausalLM',
+            'DbrxForCausalLM',
+            'DeciLMForCausalLM',
+            'ExaoneForCausalLM',
+            'FalconForCausalLM',
+            'GemmaForCausalLM',
+            'Gemma2ForCausalLM',
+            'GPT2LMHeadModel',
+            'GPTBigCodeForCausalLM',
+            'GPTJForCausalLM',
+            'GPTNeoXForCausalLM',
+            'InternLMForCausalLM',
+            'InternLM2ForCausalLM',
+            'JAISLMHeadModel',
+            'JambaForCausalLM',
+            'LlamaForCausalLM',
+            'MiniCPMForCausalLM',
+            'MistralForCausalLM',
+            'MixtralForCausalLM',
+            'MPTForCausalLM',
+            'NemotronForCausalLM',
+            'OLMoForCausalLM',
+            'OPTForCausalLM',
+            'OrionForCausalLM',
+            'PhiForCausalLM',
+            'Phi3ForCausalLM',
+            'Phi3SmallForCausalLM',
+            'PhiMoEForCausalLM',
+            'PersimmonForCausalLM',
+            'QWenLMHeadModel',
+            'Qwen2ForCausalLM',
+            'Qwen2MoeForCausalLM',
+            'StableLmForCausalLM',
+            'Starcoder2ForCausalLM',
+            'XverseForCausalLM',
+            'Blip2ForConditionalGeneration',
+            'ChameleonForConditionalGeneration',
+            'FuyuForCausalLM',
+            'InternVLChatModel',
+            'LlavaForConditionalGeneration',
+            'LlavaNextForConditionalGeneration',
+            'PaliGemmaForConditionalGeneration',
+            'Phi3VForCausalLM',
+            'MiniCPMV',
+            'UltravoxModel'
+        ]
 
 
 class VLLMEngineProcess(EngineProcess):

@@ -2,3 +2,4 @@ mlflow-skinny[databricks]
 filelock
 httpx
 huggingface-hub
+databricks-sdk

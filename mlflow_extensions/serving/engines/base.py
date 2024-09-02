@@ -153,8 +153,9 @@ class EngineConfig(abc.ABC):
     def setup_artifacts(self, local_dir: str = "/root/models") -> Dict[str, str]:
         pass
 
+    @staticmethod
     @abc.abstractmethod
-    def supported_models(self) -> List[str]:
+    def supported_model_architectures(self) -> List[str]:
         pass
 
 

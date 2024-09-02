@@ -17,7 +17,7 @@ class MockEngineConfig(EngineConfig):
     def setup_artifacts(self, local_dir: str = "/root/models") -> Dict[str, str]:
         return {}
 
-    def supported_models(self) -> List[str]:
+    def supported_model_architectures(self) -> List[str]:
         return []
 
 

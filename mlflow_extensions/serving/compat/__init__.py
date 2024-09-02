@@ -1,3 +1,4 @@
+import functools
 from functools import wraps
 from typing import Optional
 from urllib.parse import urlparse
@@ -140,3 +141,7 @@ def inject_mlflow_openai_compat_client(
         return cls
 
     return decorator
+
+
+CustomServerClient = functools.partial(CustomMLFlowHttpClient.__init__, requires_openai_compat=False)
+CustomServerAsyncClient = functools.partial(AsyncCustomMLFlowHttpClient.__init__, requires_openai_compat=False)

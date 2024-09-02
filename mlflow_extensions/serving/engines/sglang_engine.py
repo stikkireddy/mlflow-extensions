@@ -150,8 +150,37 @@ class SglangEngineConfig(EngineConfig):
             self._verify_chat_template(artifacts)
         return artifacts
 
-    def supported_models(self) -> List[str]:
-        return []
+    def supported_model_architectures(self) -> List[str]:
+        return [
+            "MiniCPMForCausalLM",
+            "StableLmForCausalLM",
+            "LlavaVidForCausalLM",
+            "Qwen2MoeForCausalLM",
+            "Qwen2ForCausalLM",
+            "GPTBigCodeForCausalLM",
+            "ChatGLMForCausalLM",
+            "ChatGLMModel",
+            "DbrxForCausalLM",
+            "LlavaLlamaForCausalLM",
+            "LlavaQwenForCausalLM",
+            "LlavaMistralForCausalLM",
+            "InternLM2ForCausalLM",
+            "QuantMixtralForCausalLM",
+            "DeepseekV2ForCausalLM",
+            "CohereForCausalLM",
+            "MixtralForCausalLM",
+            "YiVLForCausalLM",
+            "LlamaEmbeddingModel",
+            "MistralModel",
+            "LlamaForClassification",
+            "QWenLMHeadModel",
+            "Gemma2ForCausalLM",
+            "DeepseekForCausalLM",
+            "LlamaForCausalLM",
+            "GemmaForCausalLM",
+            "MistralForCausalLM",
+            "Grok1ModelForCausalLM",
+        ]
 
 
 class SglangEngineProcess(EngineProcess):
