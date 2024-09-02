@@ -143,6 +143,18 @@ class EzDeploy:
     ):
         gpu_cfg = self._config.serving_config.smallest_gpu(self._cloud)
         endpoint_exists = self._does_endpoint_exist(name)
+        try:
+            from pyspark.sql import SparkSession
+
+            spark = SparkSession.getActiveSession()
+            workspace_url = spark.conf.get("spark.databricks.workspaceUrl")
+            print(
+                f"Deploying model: {name} track progress here: https://{workspace_url}/ml/endpoints/{name}"
+            )
+        except ImportError:
+            print(
+                f"Deploying model: {name}; look at the serving tab to track progress..."
+            )
         if endpoint_exists is False:
             self._client.serving_endpoints.create_and_wait(
                 name=name,
