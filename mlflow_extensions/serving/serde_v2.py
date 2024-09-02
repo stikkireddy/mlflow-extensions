@@ -31,35 +31,40 @@ class SerdeContentTypes:
 
 class MlflowPyfuncHttpxSerializer:
     @staticmethod
-    def serialize_request(request: Request, url_path_to_request: str, requires_openai_compat: bool = True):
+    def serialize_request(
+        request: Request, url_path_to_request: str, requires_openai_compat: bool = True
+    ):
         headers = dict(request.headers)
 
-        if headers['content-type'].startswith('multipart/form-data'):
+        if headers["content-type"].startswith("multipart/form-data"):
             body_type = SerdeContentTypes.MULTIPART
             body = request.read().decode("utf-8")
         elif isinstance(request.content, str):
             body = request.content
             body_type = SerdeContentTypes.TEXT
         elif isinstance(request.content, bytes):
-            if request.headers.get('content-type', '').startswith('application/json') or \
-                    request.headers.get('content-type', '').startswith('text/plain'):
-                body = request.content.decode('utf-8')
+            if request.headers.get("content-type", "").startswith(
+                "application/json"
+            ) or request.headers.get("content-type", "").startswith("text/plain"):
+                body = request.content.decode("utf-8")
                 body_type = SerdeContentTypes.TEXT
             else:
-                body = b64encode(request.content).decode('utf-8')
+                body = b64encode(request.content).decode("utf-8")
                 body_type = SerdeContentTypes.STREAM
         elif request.content is None:
             body = None
             body_type = SerdeContentTypes.NONE
         else:
             body = request.read()
-            body = b64encode(body).decode('utf-8')
+            body = b64encode(body).decode("utf-8")
             body_type = SerdeContentTypes.STREAM
 
         serialized = {
             RequestSerdeKeys.METHOD: request.method,
             RequestSerdeKeys.URL_PATH: url_path_to_request,
-            RequestSerdeKeys.HEADERS: {"content-type": headers.get('content-type', 'text/plain')},
+            RequestSerdeKeys.HEADERS: {
+                "content-type": headers.get("content-type", "text/plain")
+            },
             RequestSerdeKeys.BODY: body,
             RequestSerdeKeys.BODY_TYPE: body_type,
             RequestSerdeKeys.REQUIRES_OPENAI_COMPAT: requires_openai_compat,
@@ -67,16 +72,15 @@ class MlflowPyfuncHttpxSerializer:
         return json.dumps(serialized)
 
     @staticmethod
-    def deserialize_request(serialized_request,
-                            *,
-                            openai_base_url: URL,
-                            server_base_url: URL):
+    def deserialize_request(
+        serialized_request, *, openai_base_url: URL, server_base_url: URL
+    ):
         req_data = json.loads(serialized_request)
 
         if req_data[RequestSerdeKeys.BODY_TYPE] == SerdeContentTypes.STREAM:
             content = BytesIO(b64decode(req_data[RequestSerdeKeys.BODY]))
         elif req_data[RequestSerdeKeys.BODY_TYPE] == SerdeContentTypes.MULTIPART:
-            content = BytesIO(req_data[RequestSerdeKeys.BODY].encode('utf-8'))
+            content = BytesIO(req_data[RequestSerdeKeys.BODY].encode("utf-8"))
         elif req_data[RequestSerdeKeys.BODY_TYPE] == SerdeContentTypes.NONE:
             content = None
         else:
@@ -92,7 +96,7 @@ class MlflowPyfuncHttpxSerializer:
             method=req_data[RequestSerdeKeys.METHOD],
             url=full_url,
             headers=req_data[RequestSerdeKeys.HEADERS],
-            content=content
+            content=content,
         )
 
     @staticmethod
@@ -100,20 +104,21 @@ class MlflowPyfuncHttpxSerializer:
         headers = dict(response.headers)
 
         # Read and encode the entire content
-        if headers.get('content-type', '').startswith('application/json') or \
-                headers.get('content-type', '').startswith('text/plain'):
-            content = response.read().decode('utf-8')
+        if headers.get("content-type", "").startswith(
+            "application/json"
+        ) or headers.get("content-type", "").startswith("text/plain"):
+            content = response.read().decode("utf-8")
             content_type = SerdeContentTypes.TEXT
         else:
             content = response.read()
-            content = b64encode(content).decode('utf-8')
+            content = b64encode(content).decode("utf-8")
             content_type = SerdeContentTypes.STREAM
 
         serialized = {
             ResponseSerdeKeys.STATUS_CODE: response.status_code,
             ResponseSerdeKeys.HEADERS: headers,
             ResponseSerdeKeys.CONTENT: content,
-            ResponseSerdeKeys.CONTENT_TYPE: content_type
+            ResponseSerdeKeys.CONTENT_TYPE: content_type,
         }
         return json.dumps(serialized)
 
@@ -130,5 +135,5 @@ class MlflowPyfuncHttpxSerializer:
             status_code=resp_data[ResponseSerdeKeys.STATUS_CODE],
             headers=resp_data[ResponseSerdeKeys.HEADERS],
             content=content,
-            request=orig_request
+            request=orig_request,
         )

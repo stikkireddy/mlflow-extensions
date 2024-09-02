@@ -6,15 +6,25 @@ from typing import List, Dict, Optional, Union
 from mlflow.pyfunc import PythonModelContext
 
 from mlflow_extensions.serving.engines import gpu_utils
-from mlflow_extensions.serving.engines.base import EngineConfig, debug_msg, EngineProcess, Command
-from mlflow_extensions.serving.engines.huggingface_utils import snapshot_download_local, ensure_chat_template
+from mlflow_extensions.serving.engines.base import (
+    EngineConfig,
+    debug_msg,
+    EngineProcess,
+    Command,
+)
+from mlflow_extensions.serving.engines.huggingface_utils import (
+    snapshot_download_local,
+    ensure_chat_template,
+)
 
 
 @dataclass(frozen=True, kw_only=True)
 class VLLMEngineConfig(EngineConfig):
     entrypoint_module: str = field(default="vllm.entrypoints.openai.api_server")
     enable_experimental_chunked_prefill: bool = field(default=False)
-    max_num_batched_tokens: int = field(default=512)  # 512 is based on A100 ITL for llama model
+    max_num_batched_tokens: int = field(
+        default=512
+    )  # 512 is based on A100 ITL for llama model
     enable_prefix_caching: bool = field(default=False)
     vllm_command_flags: Dict[str, Optional[str]] = field(default_factory=dict)
     trust_remote_code: bool = field(default=False)
@@ -37,15 +47,17 @@ class VLLMEngineConfig(EngineConfig):
             local_model_path = context.artifacts.get(self.model_artifact_key)
             tokenizer_path = context.artifacts.get(self.tokenizer_artifact_key)
         flags = []
-        skip_flags = ["--enable-chunked-prefill",
-                      "--model",
-                      "--tokenizer",
-                      "--max-num-batched-tokens",
-                      "--enable-prefix-caching",
-                      "--max-model-len",
-                      "--trust-remote-code",
-                      "--served-model-name",
-                      "--guided-decoding-backend"]
+        skip_flags = [
+            "--enable-chunked-prefill",
+            "--model",
+            "--tokenizer",
+            "--max-num-batched-tokens",
+            "--enable-prefix-caching",
+            "--max-model-len",
+            "--trust-remote-code",
+            "--served-model-name",
+            "--guided-decoding-backend",
+        ]
 
         # add tensor parallel size flag if we have GPUs
         gpu_count = gpu_utils.get_gpu_count()
@@ -74,7 +86,9 @@ class VLLMEngineConfig(EngineConfig):
         if self.guided_decoding_backend is not None:
             flags.append("--guided-decoding-backend")
             if self.guided_decoding_backend not in ["outlines", "lm-format-enforcer"]:
-                raise ValueError(f"Invalid guided decoding backend {self.guided_decoding_backend}")
+                raise ValueError(
+                    f"Invalid guided decoding backend {self.guided_decoding_backend}"
+                )
             flags.append(self.guided_decoding_backend)
         if self.tokenizer is not None:
             flags.append("--tokenizer")
@@ -95,13 +109,18 @@ class VLLMEngineConfig(EngineConfig):
             *flags,
         ]
 
-    def _to_run_command(self, context: PythonModelContext = None) -> Union[List[str], Command]:
+    def _to_run_command(
+        self, context: PythonModelContext = None
+    ) -> Union[List[str], Command]:
         return self._to_vllm_command(context=context)
 
-    def engine_pip_reqs(self, *,
-                        vllm_version: str = "0.5.5",
-                        lm_format_enforcer_version: str = "0.10.6",
-                        outlines_version: str = "0.0.46") -> List[str]:
+    def engine_pip_reqs(
+        self,
+        *,
+        vllm_version: str = "0.5.5",
+        lm_format_enforcer_version: str = "0.10.6",
+        outlines_version: str = "0.0.46",
+    ) -> List[str]:
         default_installs = [f"vllm=={vllm_version}"]
         if self.guided_decoding_backend == "lm-format-enforcer":
             default_installs.append(f"lm-format-enforcer=={lm_format_enforcer_version}")
@@ -118,9 +137,7 @@ class VLLMEngineConfig(EngineConfig):
         artifacts = {self.model_artifact_key: local_path}
         if self.tokenizer is not None and self.model != self.tokenizer:
             tokenizer_local_path = snapshot_download_local(
-                repo_id=self.tokenizer,
-                local_dir=local_dir,
-                tokenizer_only=True
+                repo_id=self.tokenizer, local_dir=local_dir, tokenizer_only=True
             )
             artifacts[self.tokenizer_artifact_key] = tokenizer_local_path
         return artifacts
@@ -131,8 +148,10 @@ class VLLMEngineConfig(EngineConfig):
         else:
             model_dir_path = Path(artifacts[self.tokenizer_artifact_key])
         tokenizer_config_file = model_dir_path / self.tokenizer_config_file
-        ensure_chat_template(tokenizer_file=str(tokenizer_config_file),
-                             chat_template_key=self.chat_template_key)
+        ensure_chat_template(
+            tokenizer_file=str(tokenizer_config_file),
+            chat_template_key=self.chat_template_key,
+        )
 
     def setup_artifacts(self, local_dir: str = "/root/models"):
         artifacts = self._setup_artifacts(local_dir)
@@ -142,56 +161,56 @@ class VLLMEngineConfig(EngineConfig):
 
     def supported_model_architectures(self) -> List[str]:
         return [
-            'AquilaForCausalLM',
-            'ArcticForCausalLM',
-            'BaiChuanForCausalLM',
-            'BloomForCausalLM',
-            'ChatGLMModel',
-            'CohereForCausalLM',
-            'DbrxForCausalLM',
-            'DeciLMForCausalLM',
-            'ExaoneForCausalLM',
-            'FalconForCausalLM',
-            'GemmaForCausalLM',
-            'Gemma2ForCausalLM',
-            'GPT2LMHeadModel',
-            'GPTBigCodeForCausalLM',
-            'GPTJForCausalLM',
-            'GPTNeoXForCausalLM',
-            'InternLMForCausalLM',
-            'InternLM2ForCausalLM',
-            'JAISLMHeadModel',
-            'JambaForCausalLM',
-            'LlamaForCausalLM',
-            'MiniCPMForCausalLM',
-            'MistralForCausalLM',
-            'MixtralForCausalLM',
-            'MPTForCausalLM',
-            'NemotronForCausalLM',
-            'OLMoForCausalLM',
-            'OPTForCausalLM',
-            'OrionForCausalLM',
-            'PhiForCausalLM',
-            'Phi3ForCausalLM',
-            'Phi3SmallForCausalLM',
-            'PhiMoEForCausalLM',
-            'PersimmonForCausalLM',
-            'QWenLMHeadModel',
-            'Qwen2ForCausalLM',
-            'Qwen2MoeForCausalLM',
-            'StableLmForCausalLM',
-            'Starcoder2ForCausalLM',
-            'XverseForCausalLM',
-            'Blip2ForConditionalGeneration',
-            'ChameleonForConditionalGeneration',
-            'FuyuForCausalLM',
-            'InternVLChatModel',
-            'LlavaForConditionalGeneration',
-            'LlavaNextForConditionalGeneration',
-            'PaliGemmaForConditionalGeneration',
-            'Phi3VForCausalLM',
-            'MiniCPMV',
-            'UltravoxModel'
+            "AquilaForCausalLM",
+            "ArcticForCausalLM",
+            "BaiChuanForCausalLM",
+            "BloomForCausalLM",
+            "ChatGLMModel",
+            "CohereForCausalLM",
+            "DbrxForCausalLM",
+            "DeciLMForCausalLM",
+            "ExaoneForCausalLM",
+            "FalconForCausalLM",
+            "GemmaForCausalLM",
+            "Gemma2ForCausalLM",
+            "GPT2LMHeadModel",
+            "GPTBigCodeForCausalLM",
+            "GPTJForCausalLM",
+            "GPTNeoXForCausalLM",
+            "InternLMForCausalLM",
+            "InternLM2ForCausalLM",
+            "JAISLMHeadModel",
+            "JambaForCausalLM",
+            "LlamaForCausalLM",
+            "MiniCPMForCausalLM",
+            "MistralForCausalLM",
+            "MixtralForCausalLM",
+            "MPTForCausalLM",
+            "NemotronForCausalLM",
+            "OLMoForCausalLM",
+            "OPTForCausalLM",
+            "OrionForCausalLM",
+            "PhiForCausalLM",
+            "Phi3ForCausalLM",
+            "Phi3SmallForCausalLM",
+            "PhiMoEForCausalLM",
+            "PersimmonForCausalLM",
+            "QWenLMHeadModel",
+            "Qwen2ForCausalLM",
+            "Qwen2MoeForCausalLM",
+            "StableLmForCausalLM",
+            "Starcoder2ForCausalLM",
+            "XverseForCausalLM",
+            "Blip2ForConditionalGeneration",
+            "ChameleonForConditionalGeneration",
+            "FuyuForCausalLM",
+            "InternVLChatModel",
+            "LlavaForConditionalGeneration",
+            "LlavaNextForConditionalGeneration",
+            "PaliGemmaForConditionalGeneration",
+            "Phi3VForCausalLM",
+            "MiniCPMV",
+            "UltravoxModel",
         ]
 
 
@@ -206,5 +225,7 @@ class VLLMEngineProcess(EngineProcess):
             resp = self.server_http_client.get("/health")
             return resp.status_code == 200
         except Exception as e:
-            debug_msg(f"Health check failed with error {e}; server may not be up yet or crashed;")
+            debug_msg(
+                f"Health check failed with error {e}; server may not be up yet or crashed;"
+            )
             return False

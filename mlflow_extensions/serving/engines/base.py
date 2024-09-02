@@ -37,12 +37,14 @@ class Command:
 
     def start(self):
         if self.long_living is True:
-            self.active_process = subprocess.Popen(self.command,
-                                                   env=self.env or os.environ.copy(),
-                                                   stdout=subprocess.PIPE,
-                                                   stderr=subprocess.PIPE,
-                                                   # ensure process is in another process group / session
-                                                   preexec_fn=os.setsid, )
+            self.active_process = subprocess.Popen(
+                self.command,
+                env=self.env or os.environ.copy(),
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                # ensure process is in another process group / session
+                preexec_fn=os.setsid,
+            )
         else:
             self.active_process = subprocess.Popen(
                 self.command,
@@ -51,7 +53,7 @@ class Command:
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 text=True,  # This will handle the output as text rather than bytes
-                bufsize=1  # Line-buffered
+                bufsize=1,  # Line-buffered
             )
 
     def is_running(self) -> bool:
@@ -67,7 +69,9 @@ class Command:
             return
 
         if self.long_living is True:
-            raise ValueError("Unable to wait and log for long living process will hang the thread.")
+            raise ValueError(
+                "Unable to wait and log for long living process will hang the thread."
+            )
 
         try:
             # Stream and print stdout
@@ -78,7 +82,7 @@ class Command:
             self.active_process.wait()
 
             # Check the exit code
-            print('Exit Code:', self.active_process.returncode)
+            print("Exit Code:", self.active_process.returncode)
 
         except Exception as e:
             print(f"Error while waiting for logs: {e}")
@@ -104,10 +108,10 @@ class Command:
             print("Timed out")
 
         try:
-            print('STDOUT:', stdout.decode())
-            print('STDERR:', stderr.decode())
+            print("STDOUT:", stdout.decode())
+            print("STDERR:", stderr.decode())
         finally:
-            print('Exit Code:', self.active_process.returncode)
+            print("Exit Code:", self.active_process.returncode)
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -119,10 +123,14 @@ class EngineConfig(abc.ABC):
     ensure_supported_models: bool = field(default=True)
 
     @abc.abstractmethod
-    def _to_run_command(self, context: PythonModelContext = None) -> Union[List[str], Command]:
+    def _to_run_command(
+        self, context: PythonModelContext = None
+    ) -> Union[List[str], Command]:
         pass
 
-    def to_run_command(self, context: PythonModelContext = None) -> Union[List[str], Command]:
+    def to_run_command(
+        self, context: PythonModelContext = None
+    ) -> Union[List[str], Command]:
         command = self._to_run_command(context)
         debug_msg(f"Command: {command}")
         if isinstance(command, list):
@@ -130,20 +138,30 @@ class EngineConfig(abc.ABC):
             return [str(item) for item in command]
         return command
 
-    def default_pip_reqs(self, *,
-                         filelock_version: str = "3.15.4",
-                         httpx_version: str = "0.27.0",
-                         psutil_version: str = "6.0.0",
-                         mlflow_extensions_version: str = None,
-                         **kwargs) -> List[str]:
+    def default_pip_reqs(
+        self,
+        *,
+        filelock_version: str = "3.15.4",
+        httpx_version: str = "0.27.0",
+        psutil_version: str = "6.0.0",
+        mlflow_extensions_version: str = None,
+        **kwargs,
+    ) -> List[str]:
 
-        mlflow_extensions_version = mlflow_extensions_version or get_mlflow_extensions_version()
+        mlflow_extensions_version = (
+            mlflow_extensions_version or get_mlflow_extensions_version()
+        )
         if mlflow_extensions_version is None:
             mlflow_extensions = "mlflow-extensions"
         else:
             mlflow_extensions = f"mlflow-extensions=={mlflow_extensions_version}"
-        return [f"httpx=={httpx_version}", f"psutil=={psutil_version}", *self.engine_pip_reqs(**kwargs),
-                f"filelock=={filelock_version}", mlflow_extensions]
+        return [
+            f"httpx=={httpx_version}",
+            f"psutil=={psutil_version}",
+            *self.engine_pip_reqs(**kwargs),
+            f"filelock=={filelock_version}",
+            mlflow_extensions,
+        ]
 
     @abc.abstractmethod
     def engine_pip_reqs(self, **kwargs) -> List[str]:
@@ -165,12 +183,11 @@ class EngineProcess(abc.ABC):
         self._config = config
         self._lock = FileLock(f"{self.__class__.__name__}.txt.lock")
         self._server_http_client = httpx.Client(
-            base_url=f"http://{self._config.host}:{self._config.port}",
-            timeout=30
+            base_url=f"http://{self._config.host}:{self._config.port}", timeout=30
         )
         self._oai_http_client = httpx.Client(
             base_url=f"http://{self._config.host}:{self._config.port}/{self._config.openai_api_path}",
-            timeout=300
+            timeout=300,
         )
         self._proc = None
         self._run_health_check = None
@@ -228,9 +245,11 @@ class EngineProcess(abc.ABC):
         proc_env = {"HOST": self.config.host, "PORT": str(self.config.host)}
         command = self.config.to_run_command(context)
         if isinstance(command, list):
-            self._proc = subprocess.Popen(command,
-                                          env=proc_env,
-                                          preexec_fn=os.setsid,)
+            self._proc = subprocess.Popen(
+                command,
+                env=proc_env,
+                preexec_fn=os.setsid,
+            )
         elif isinstance(command, Command):
             command.start()
 
@@ -238,11 +257,13 @@ class EngineProcess(abc.ABC):
             debug_msg(f"Waiting for {self.engine_name} to start")
             time.sleep(1)
 
-    def ensure_server_is_running(self,
-                                 *,
-                                 context: PythonModelContext = None,
-                                 health_check_frequency_seconds: int = 10,
-                                 max_respawn_attempts: int = 3):
+    def ensure_server_is_running(
+        self,
+        *,
+        context: PythonModelContext = None,
+        health_check_frequency_seconds: int = 10,
+        max_respawn_attempts: int = 3,
+    ):
         print(f"Ensuring {self.engine_name} is running for pid {self._proc.pid}")
         if self._proc is None:
             raise ValueError("Process not started yet. Run start_proc() first.")
@@ -250,7 +271,9 @@ class EngineProcess(abc.ABC):
         # check if pid is still running
         while True:
             if attempt_count > max_respawn_attempts:
-                debug_msg(f"Max respawn attempts reached for {self.engine_name}. Restart serving endpoint.")
+                debug_msg(
+                    f"Max respawn attempts reached for {self.engine_name}. Restart serving endpoint."
+                )
                 break
             if self._run_health_check is not True:
                 break
@@ -260,7 +283,9 @@ class EngineProcess(abc.ABC):
                 else:
                     process = psutil.Process(self._proc.pid)
                     if process.status() == psutil.STATUS_ZOMBIE:
-                        debug_msg(f"Process: {self._proc.pid} is zombie. Killing process.")
+                        debug_msg(
+                            f"Process: {self._proc.pid} is zombie. Killing process."
+                        )
                         self._kill_active_proc()
                     self._spawn_server_proc(context)
                     if self.health_check() is False:
@@ -290,7 +315,7 @@ class EngineProcess(abc.ABC):
                     target=self.ensure_server_is_running,
                     kwargs={
                         "context": context,
-                    }
+                    },
                 )
                 if self._health_check_thread is not None:
                     self._health_check_thread.start()

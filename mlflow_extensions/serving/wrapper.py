@@ -7,7 +7,11 @@ import pandas as pd
 from httpx import Response, Request
 from mlflow.pyfunc import PythonModelContext
 
-from mlflow_extensions.serving.engines.base import EngineProcess, debug_msg, EngineConfig
+from mlflow_extensions.serving.engines.base import (
+    EngineProcess,
+    debug_msg,
+    EngineConfig,
+)
 from mlflow_extensions.serving.serde import ResponseMessageV1
 from mlflow_extensions.serving.serde_v2 import MlflowPyfuncHttpxSerializer
 
@@ -21,10 +25,7 @@ class CustomEngineServingResponse:
 class CustomServingEnginePyfuncWrapper(mlflow.pyfunc.PythonModel):
 
     # todo support lora modules
-    def __init__(self,
-                 *,
-                 engine: Type[EngineProcess],
-                 engine_config: EngineConfig):
+    def __init__(self, *, engine: Type[EngineProcess], engine_config: EngineConfig):
         self._engine_klass: Type[EngineProcess] = engine
         self._engine_config: EngineConfig = engine_config
         self._engine: Optional[EngineProcess] = None
@@ -54,11 +55,15 @@ class CustomServingEnginePyfuncWrapper(mlflow.pyfunc.PythonModel):
             self._engine = self._engine_klass(config=self._engine_config)
         self._engine.start_proc(context)
 
-    def predict(self, context, model_input: List[List[str]], params=None) -> List[List[str]]:
+    def predict(
+        self, context, model_input: List[List[str]], params=None
+    ) -> List[List[str]]:
         import numpy as np
+
         if not isinstance(model_input, (list, dict, np.ndarray, pd.DataFrame)):
             raise ValueError(
-                f"model_input must be a list, dict, numpy array, or dataframe but received: {type(model_input)}")
+                f"model_input must be a list, dict, numpy array, or dataframe but received: {type(model_input)}"
+            )
         if isinstance(model_input, dict):
             model_input = model_input.values()
         if isinstance(model_input, pd.DataFrame):
@@ -67,14 +72,18 @@ class CustomServingEnginePyfuncWrapper(mlflow.pyfunc.PythonModel):
                 model_input = model_input[model_input.columns[0]].values
             else:
                 raise ValueError(
-                    f"Dataframe must have only one column, but received {len(model_input.columns)} columns")
-        return [self._request_model(
-            MlflowPyfuncHttpxSerializer.deserialize_request(
-                req,
-                openai_base_url=self._engine.oai_http_client.base_url,
-                server_base_url=self._engine.server_http_client.base_url,
+                    f"Dataframe must have only one column, but received {len(model_input.columns)} columns"
+                )
+        return [
+            self._request_model(
+                MlflowPyfuncHttpxSerializer.deserialize_request(
+                    req,
+                    openai_base_url=self._engine.oai_http_client.base_url,
+                    server_base_url=self._engine.server_http_client.base_url,
+                )
             )
-        ) for req in model_input]
+            for req in model_input
+        ]
 
     def _setup_artifacts(self, local_dir: str = "/root/models"):
         self._artifacts = self._engine_config.setup_artifacts(local_dir)

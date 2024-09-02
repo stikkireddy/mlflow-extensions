@@ -7,7 +7,12 @@ from typing import List, Dict, Union, Optional
 
 from mlflow.pyfunc import PythonModelContext
 
-from mlflow_extensions.serving.engines.base import EngineConfig, Command, EngineProcess, debug_msg
+from mlflow_extensions.serving.engines.base import (
+    EngineConfig,
+    Command,
+    EngineProcess,
+    debug_msg,
+)
 
 
 def set_full_permissions(path: str):
@@ -21,8 +26,10 @@ def set_full_permissions(path: str):
             os.chmod(file_path, 0o777)  # Full permissions for files
 
 
-def download_and_extract(version: str = "0.3.8", download_dir: str = ".", extract_dir: str = "ollama") -> Optional[str]:
-    version = version.lstrip('v')
+def download_and_extract(
+    version: str = "0.3.8", download_dir: str = ".", extract_dir: str = "ollama"
+) -> Optional[str]:
+    version = version.lstrip("v")
     url = f"https://github.com/ollama/ollama/releases/download/v{version}/ollama-linux-amd64.tgz"
     downloaded_file = os.path.join(download_dir, "ollama-linux-amd64.tgz")
     extract_path = os.path.join(download_dir, extract_dir)
@@ -37,7 +44,9 @@ def download_and_extract(version: str = "0.3.8", download_dir: str = ".", extrac
         return
 
     try:
-        subprocess.run(["tar", "-xzvf", downloaded_file, "-C", download_dir], check=True)
+        subprocess.run(
+            ["tar", "-xzvf", downloaded_file, "-C", download_dir], check=True
+        )
         print(f"Extracted {downloaded_file} into {download_dir}")
     except subprocess.CalledProcessError as e:
         print(f"Error extracting file: {e}")
@@ -58,7 +67,9 @@ def download_and_extract(version: str = "0.3.8", download_dir: str = ".", extrac
         os.rename(extracted_folder_path, extract_path)
         print(f"Renamed the extracted directory to {extract_path}")
     else:
-        print(f"Expected directory {extracted_folder_path} not found. No renaming performed.")
+        print(
+            f"Expected directory {extracted_folder_path} not found. No renaming performed."
+        )
 
     set_full_permissions(str(download_dir))
 
@@ -77,26 +88,30 @@ class OllamaEngineConfig(EngineConfig):
         download_dir = Path(local_dir) / self.root_folder_name
         ollama_cli = download_and_extract(self.ollama_version, str(download_dir))
         new_env = os.environ.copy()
-        new_env.update({
-            "OLLAMA_HOST": f"{self.host}:{self.port}",
-            "OLLAMA_MODELS": str(download_dir / self.model_download_dir_name)
-        })
-        server = Command(name="ollama-serve", command=[ollama_cli, "serve"], env=new_env)
+        new_env.update(
+            {
+                "OLLAMA_HOST": f"{self.host}:{self.port}",
+                "OLLAMA_MODELS": str(download_dir / self.model_download_dir_name),
+            }
+        )
+        server = Command(
+            name="ollama-serve", command=[ollama_cli, "serve"], env=new_env
+        )
         server.start()
         download_model = Command(
             name="ollama-download-model",
             command=[ollama_cli, "pull", self.model],
             env=new_env,
-            long_living=False
+            long_living=False,
         )
         download_model.start()
         download_model.wait_and_log()
         server.stop()
-        return {
-            self.model_artifact_key: str(download_dir.absolute())
-        }
+        return {self.model_artifact_key: str(download_dir.absolute())}
 
-    def _to_run_command(self, context: PythonModelContext = None) -> Union[List[str], Command]:
+    def _to_run_command(
+        self, context: PythonModelContext = None
+    ) -> Union[List[str], Command]:
         local_model_path = "/root/models"
         if context is not None:
             local_model_path = context.artifacts.get(self.model_artifact_key)
@@ -104,10 +119,12 @@ class OllamaEngineConfig(EngineConfig):
         ollama_root_dir = Path(local_model_path)
         bin_path = ollama_root_dir / "bin/ollama"
         new_env = os.environ.copy()
-        new_env.update({
-            "OLLAMA_HOST": f"{self.host}:{self.port}",
-            "OLLAMA_MODELS": str(ollama_root_dir / self.model_download_dir_name)
-        })
+        new_env.update(
+            {
+                "OLLAMA_HOST": f"{self.host}:{self.port}",
+                "OLLAMA_MODELS": str(ollama_root_dir / self.model_download_dir_name),
+            }
+        )
         return Command(name="ollama-serve", command=[bin_path, "serve"], env=new_env)
 
     def engine_pip_reqs(self, **kwargs) -> List[str]:
@@ -128,5 +145,7 @@ class OllamaEngineProcess(EngineProcess):
             resp = self.server_http_client.get("/")
             return resp.status_code == 200
         except Exception as e:
-            debug_msg(f"Health check failed with error {e}; server may not be up yet or crashed;")
+            debug_msg(
+                f"Health check failed with error {e}; server may not be up yet or crashed;"
+            )
             return False

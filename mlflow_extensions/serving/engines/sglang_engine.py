@@ -7,8 +7,16 @@ from typing import List, Dict, Optional, Union
 from mlflow.pyfunc import PythonModelContext
 
 from mlflow_extensions.serving.engines import gpu_utils
-from mlflow_extensions.serving.engines.base import EngineConfig, debug_msg, EngineProcess, Command
-from mlflow_extensions.serving.engines.huggingface_utils import snapshot_download_local, ensure_chat_template
+from mlflow_extensions.serving.engines.base import (
+    EngineConfig,
+    debug_msg,
+    EngineProcess,
+    Command,
+)
+from mlflow_extensions.serving.engines.huggingface_utils import (
+    snapshot_download_local,
+    ensure_chat_template,
+)
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -40,7 +48,11 @@ class SglangEngineConfig(EngineConfig):
 
         if self.tokenizer_path is not None:
             flags.append("--tokenizer-path")
-            flags.append(tokenizer_model_path if tokenizer_model_path is not None else self.tokenizer_path)
+            flags.append(
+                tokenizer_model_path
+                if tokenizer_model_path is not None
+                else self.tokenizer_path
+            )
 
         # add tensor parallel size flag if we have GPUs
         gpu_count = gpu_utils.get_gpu_count()
@@ -48,13 +60,15 @@ class SglangEngineConfig(EngineConfig):
             flags.append("--tensor-parallel-size")
             flags.append(str(gpu_count))
 
-        skip_flags = ["--model-path",
-                      "--context-length",
-                      "--trust-remote-code",
-                      "--served-model-name",
-                      "--tokenizer-path",
-                      "--quantization",
-                      "--chat-template"]
+        skip_flags = [
+            "--model-path",
+            "--context-length",
+            "--trust-remote-code",
+            "--served-model-name",
+            "--tokenizer-path",
+            "--quantization",
+            "--chat-template",
+        ]
         for k, v in self.sglang_command_flags.items():
             if k in skip_flags:
                 debug_msg(f"Skipping flag {k} use the built in argument")
@@ -106,13 +120,18 @@ class SglangEngineConfig(EngineConfig):
             *flags,
         ]
 
-    def _to_run_command(self, context: PythonModelContext = None) -> Union[List[str], Command]:
+    def _to_run_command(
+        self, context: PythonModelContext = None
+    ) -> Union[List[str], Command]:
         return self._to_sglang_command(context=context)
 
-    def engine_pip_reqs(self, *,
-                        sglang_version: str = "0.2.13",
-                        flashinfer_extra_index_url: str = "https://flashinfer.ai/whl/cu121/torch2.4/",
-                        flashinfer_version: str = "0.1.6") -> List[str]:
+    def engine_pip_reqs(
+        self,
+        *,
+        sglang_version: str = "0.2.13",
+        flashinfer_extra_index_url: str = "https://flashinfer.ai/whl/cu121/torch2.4/",
+        flashinfer_version: str = "0.1.6",
+    ) -> List[str]:
         default_installs = [f"sglang[all]=={sglang_version}"]
         if flashinfer_extra_index_url is not None:
             default_installs.append(f"--extra-index-url={flashinfer_extra_index_url}")
@@ -128,9 +147,7 @@ class SglangEngineConfig(EngineConfig):
         artifacts = {self.model_artifact_key: local_path}
         if self.tokenizer_path is not None and self.model != self.tokenizer_path:
             tokenizer_local_path = snapshot_download_local(
-                repo_id=self.tokenizer_path,
-                local_dir=local_dir,
-                tokenizer_only=True
+                repo_id=self.tokenizer_path, local_dir=local_dir, tokenizer_only=True
             )
             artifacts[self.tokenizer_artifact_key] = tokenizer_local_path
         return artifacts
@@ -141,8 +158,10 @@ class SglangEngineConfig(EngineConfig):
         else:
             model_dir_path = Path(artifacts[self.tokenizer_artifact_key])
         tokenizer_config_file = model_dir_path / self.tokenizer_config_file
-        ensure_chat_template(tokenizer_file=str(tokenizer_config_file),
-                             chat_template_key=self.chat_template_key)
+        ensure_chat_template(
+            tokenizer_file=str(tokenizer_config_file),
+            chat_template_key=self.chat_template_key,
+        )
 
     def setup_artifacts(self, local_dir: str = "/root/models"):
         artifacts = self._setup_artifacts(local_dir)
@@ -194,5 +213,7 @@ class SglangEngineProcess(EngineProcess):
             resp = self.server_http_client.get("/health")
             return resp.status_code == 200
         except Exception as e:
-            debug_msg(f"Health check failed with error {e}; server may not be up yet or crashed;")
+            debug_msg(
+                f"Health check failed with error {e}; server may not be up yet or crashed;"
+            )
             return False

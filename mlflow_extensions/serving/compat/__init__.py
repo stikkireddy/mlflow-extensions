@@ -30,28 +30,31 @@ def build_endpoint_url(url: str) -> str:
 
 class BaseCustomMLFlowHttpClient:
     def __init__(
-            self, *,
-            endpoint_url: str,
-            token: Optional[str] = None,
-            timeout: int = 30,
-            requires_openai_compat: bool = True
+        self,
+        *,
+        endpoint_url: str,
+        token: Optional[str] = None,
+        timeout: int = 30,
+        requires_openai_compat: bool = True,
     ):
         if validate_url_token(endpoint_url, token) is False:
-            raise ValueError("You must provide a token unless the endpoint is localhost or 0.0.0.0")
+            raise ValueError(
+                "You must provide a token unless the endpoint is localhost or 0.0.0.0"
+            )
 
         headers = {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
         }
         if token:
-            headers['Authorization'] = f"Bearer {token}"
+            headers["Authorization"] = f"Bearer {token}"
 
         self._custom_provided_base_path = urlparse(endpoint_url).path.rstrip("/")
         base_url = build_endpoint_url(endpoint_url)
         self._timeout = timeout
         self._http_client_args = {
-            'base_url': base_url,
-            'headers': headers,
-            'timeout': timeout
+            "base_url": base_url,
+            "headers": headers,
+            "timeout": timeout,
         }
         self.requires_openai_compat = requires_openai_compat
 
@@ -60,19 +63,27 @@ class BaseCustomMLFlowHttpClient:
         if isinstance(request.url, str):
             url = httpx.URL(request.url)
         path_to_request = url.path.replace(self._custom_provided_base_path, "")
-        return {"inputs": [MlflowPyfuncHttpxSerializer.serialize_request(
-            request,
-            path_to_request,
-            requires_openai_compat=self.requires_openai_compat
-        )]}
+        return {
+            "inputs": [
+                MlflowPyfuncHttpxSerializer.serialize_request(
+                    request,
+                    path_to_request,
+                    requires_openai_compat=self.requires_openai_compat,
+                )
+            ]
+        }
 
     @staticmethod
     def _process_response(response_json: dict, orig_request: Request) -> Response:
         try:
             prediction = response_json["predictions"][0]
         except KeyError:
-            raise ValueError(f"Invalid response from server: missing 'predictions' key; response_json={response_json}")
-        return MlflowPyfuncHttpxSerializer.deserialize_response(prediction, orig_request)
+            raise ValueError(
+                f"Invalid response from server: missing 'predictions' key; response_json={response_json}"
+            )
+        return MlflowPyfuncHttpxSerializer.deserialize_response(
+            prediction, orig_request
+        )
 
 
 class CustomMLFlowHttpClient(BaseCustomMLFlowHttpClient, Client):
@@ -100,10 +111,10 @@ class AsyncCustomMLFlowHttpClient(BaseCustomMLFlowHttpClient, AsyncClient):
 
 
 def inject_mlflow_openai_compat_client(
-        use_sync: Optional[bool] = None,
-        use_async: Optional[bool] = None,
-        sync_client_attribute: str = "http_client",
-        async_client_attribute: str = "async_client"
+    use_sync: Optional[bool] = None,
+    use_async: Optional[bool] = None,
+    sync_client_attribute: str = "http_client",
+    async_client_attribute: str = "async_client",
 ):
     def decorator(cls):
         original_init = cls.__init__
@@ -121,17 +132,17 @@ def inject_mlflow_openai_compat_client(
 
             additional_client_kwargs = {}
             if use_sync is True:
-                additional_client_kwargs[sync_client_attribute] = CustomMLFlowHttpClient(
-                    endpoint_url=base_url,
-                    token=api_key,
-                    timeout=timeout
+                additional_client_kwargs[sync_client_attribute] = (
+                    CustomMLFlowHttpClient(
+                        endpoint_url=base_url, token=api_key, timeout=timeout
+                    )
                 )
 
             if use_async is True:
-                additional_client_kwargs[async_client_attribute] = AsyncCustomMLFlowHttpClient(
-                    endpoint_url=base_url,
-                    token=api_key,
-                    timeout=timeout
+                additional_client_kwargs[async_client_attribute] = (
+                    AsyncCustomMLFlowHttpClient(
+                        endpoint_url=base_url, token=api_key, timeout=timeout
+                    )
                 )
 
             kwargs.update(additional_client_kwargs)
@@ -143,5 +154,9 @@ def inject_mlflow_openai_compat_client(
     return decorator
 
 
-CustomServerClient = functools.partial(CustomMLFlowHttpClient.__init__, requires_openai_compat=False)
-CustomServerAsyncClient = functools.partial(AsyncCustomMLFlowHttpClient.__init__, requires_openai_compat=False)
+CustomServerClient = functools.partial(
+    CustomMLFlowHttpClient.__init__, requires_openai_compat=False
+)
+CustomServerAsyncClient = functools.partial(
+    AsyncCustomMLFlowHttpClient.__init__, requires_openai_compat=False
+)

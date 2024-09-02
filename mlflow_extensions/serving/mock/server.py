@@ -31,6 +31,7 @@ async def handle_any_request(request: Request, full_path: str):
         f = await request.form()
         file: UploadFile = f.get("file")
         if file:
+
             async def iterfile():
                 file_content = await file.read()
                 yield file_content

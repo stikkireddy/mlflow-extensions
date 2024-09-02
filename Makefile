@@ -9,9 +9,19 @@ build:
 	@python setup.py bdist_wheel sdist
 	@echo "Finished making distributions..."
 
-upload:
+upload: check
 	@echo "Uploading to PyPI..."
 	@twine upload dist/*
 	@echo "Finished uploading to PyPI..."
+
+check:
+	@echo "Checking code..."
+	@black --check mlflow_extensions/
+	@echo "Finished checking code..."
+
+fmt:
+	@echo "Formatting code..."
+	@black mlflow_extensions/
+	@echo "Finished formatting code..."
 
 .PHONY: build

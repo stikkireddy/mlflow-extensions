@@ -24,7 +24,7 @@ class MessageProto(abc.ABC):
 
     @classmethod
     @abc.abstractmethod
-    def deserialize(cls, data: List[str]) -> 'MessageProto':
+    def deserialize(cls, data: List[str]) -> "MessageProto":
         pass
 
 
@@ -43,12 +43,9 @@ class RequestMessageV1(MessageProto):
         return [self.request_path, self.method, str(self.timeout), self.payload]
 
     @classmethod
-    def deserialize(cls, data: List[str]) -> 'RequestMessageV1':
+    def deserialize(cls, data: List[str]) -> "RequestMessageV1":
         return cls(
-            request_path=data[1],
-            method=data[2],
-            timeout=int(data[3]),
-            payload=data[4]
+            request_path=data[1], method=data[2], timeout=int(data[3]), payload=data[4]
         )
 
 
@@ -61,18 +58,20 @@ class ResponseMessageV1(MessageProto):
     response_content_type: str
 
     def _serialize(self) -> List[str]:
-        return [self.request_method,
-                str(self.request_timeout),
-                self.response_data,
-                str(self.response_status_code),
-                self.response_content_type]
+        return [
+            self.request_method,
+            str(self.request_timeout),
+            self.response_data,
+            str(self.response_status_code),
+            self.response_content_type,
+        ]
 
     @classmethod
-    def deserialize(cls, data: List[str]) -> 'ResponseMessageV1':
+    def deserialize(cls, data: List[str]) -> "ResponseMessageV1":
         return cls(
             request_method=data[1],
             request_timeout=int(data[2]),
             response_data=data[3],
             response_status_code=int(data[4]),
-            response_content_type=data[5]
+            response_content_type=data[5],
         )
