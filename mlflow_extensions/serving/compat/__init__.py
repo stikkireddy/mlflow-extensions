@@ -67,7 +67,10 @@ class BaseCustomMLFlowHttpClient:
 
     @staticmethod
     def _process_response(response_json: dict, orig_request: Request) -> Response:
-        prediction = response_json["predictions"][0]
+        try:
+            prediction = response_json["predictions"][0]
+        except KeyError:
+            raise ValueError(f"Invalid response from server: missing 'predictions' key; response_json={response_json}")
         return MlflowPyfuncHttpxSerializer.deserialize_response(prediction, orig_request)
 
 
