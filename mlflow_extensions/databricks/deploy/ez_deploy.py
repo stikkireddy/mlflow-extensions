@@ -7,10 +7,9 @@ from databricks.sdk.errors import ResourceDoesNotExist
 from databricks.sdk.service.serving import (
     EndpointCoreConfigInput,
     ServedEntityInput,
-    EndpointTag,
 )
 
-from mlflow_extensions.serving.databricks.lms.gpu_configs import (
+from mlflow_extensions.databricks.deploy.gpu_configs import (
     GPUConfig,
     Cloud,
     ALL_VALID_GPUS,
@@ -60,7 +59,7 @@ class EzDeploy:
     ):
         self._config = config
         self._registered_model_name = registered_model_name
-        assert self._registered_model_name.split(".") == 3, (
+        assert len(self._registered_model_name.split(".")) == 3, (
             "Ensure that your registered model name "
             "follows the level namespace;"
             " <catalog>.<schema>.<model_name>"
