@@ -35,7 +35,7 @@ class ServingConfig:
             raise ValueError(
                 "No valid gpus in cloud please provide the right gpu config"
             )
-        return min(filtered_gpus, key=lambda gpu: gpu.total_memory_gb())
+        return min(filtered_gpus, key=lambda gpu: gpu.total_memory_gb)
 
 
 @dataclass(frozen=True, kw_only=True)
