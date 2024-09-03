@@ -242,7 +242,9 @@ class EngineProcess(abc.ABC):
             os.killpg(os.getpgid(self._proc.pid), signal.SIGKILL)
 
     def _spawn_server_proc(self, context: PythonModelContext = None):
-        proc_env = {"HOST": self.config.host, "PORT": str(self.config.host)}
+        proc_env = os.environ.copy()
+        server_details = {"HOST": self.config.host, "PORT": str(self.config.host)}
+        proc_env.update(server_details)
         command = self.config.to_run_command(context)
         if isinstance(command, list):
             self._proc = subprocess.Popen(
