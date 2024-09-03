@@ -1,3 +1,5 @@
+from dataclasses import dataclass, field
+
 from mlflow_extensions.databricks.deploy.ez_deploy import (
     EzDeployConfig,
     ServingConfig,
@@ -64,3 +66,19 @@ LLAVA_NEXT_LLAMA3_8B_CONFIG = EzDeployConfig(
     ),
     serving_config=_llava_model_serving_configs_7b,
 )
+
+
+@dataclass(frozen=True)
+class SglangVision:
+    LLAVA_1_5_LLAMA: EzDeployConfig = field(
+        default_factory=lambda: LLAVA_1_5_LLAMA_CONFIG
+    )
+    LLAVA_1_6_VICUNA: EzDeployConfig = field(
+        default_factory=lambda: LLAVA_1_6_VICUNA_CONFIG
+    )
+    LLAVA_1_6_YI_34B: EzDeployConfig = field(
+        default_factory=lambda: LLAVA_1_6_YI_34B_CONFIG
+    )
+    LLAVA_NEXT_LLAMA3_8B: EzDeployConfig = field(
+        default_factory=lambda: LLAVA_NEXT_LLAMA3_8B_CONFIG
+    )

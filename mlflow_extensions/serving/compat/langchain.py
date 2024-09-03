@@ -12,6 +12,6 @@ except ImportError as e:
     )
 
 OpenAI = inject_mlflow_openai_compat_client(use_sync=True, use_async=True)(OpenAI)
-AsyncOpenAI = inject_mlflow_openai_compat_client(use_sync=True, use_async=True)(
+ChatOpenAI = inject_mlflow_openai_compat_client(use_sync=True, use_async=True)(
     ChatOpenAI
 )

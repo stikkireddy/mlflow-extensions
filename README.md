@@ -2,8 +2,14 @@
 
 ## Overview
 
-The goal of this project is to extend the capabilities of MLflow to support additional features such as 
-testing pyfunc in databricks notebooks, and deploy complex llm server infrastructure such as vllm, sglang, ollama, etc.
+
+The goal of this project is to make deploying any large language model, or multi modal large language models 
+a simple three-step process.
+
+1. Download the model from hf or any other source.
+2. Register the model with mlflow.
+3. Deploy the model using the mlflow serving infrastructure. (e.g. Databricks)
+
 
 ## Features
 
@@ -21,9 +27,16 @@ pip install mlflow-extensions
 
 1. vLLM
 2. Ollama 
-3. SGlang (WIP)
+3. SGlang
 
-## Usage
+## EZ Deploy
+
+To make your deployments easier into a three step process we have created a simplified interface that lets you 
+download the model and then register in UC and deploy it in Databricks with the appropriate gpu hardware.
+
+
+
+## Custom Engine Usage
 
 ### Testing Pyfunc Models
 
@@ -45,7 +58,7 @@ local_server.start()
 
 local_server.wait_and_assert_healthy()
 
-# assert fixture.query(payload={"inputs": [....]}) == ...
+# assert local_server.query(payload={"inputs": [....]}) == ...
 
 local_server.stop()
 ```
@@ -236,7 +249,7 @@ model = ChatOpenAI(
 model.invoke("hello world")
 ```
 
-#### Calling a model using sglang sdk
+#### Calling a model using sglang sdk using the openai backend
 
 ```python
 from sglang import function, system, user, assistant, gen, set_default_backend
@@ -256,6 +269,41 @@ set_default_backend(
         model="gemma2:2b",
         base_url="https://<>.com/serving-endpoints/<model-name>",
         api_key="<dapi..."
+    )
+)
+    
+state = multi_turn_question.run(
+        question_1="What is the capital of the United States?",
+        question_2="List two local attractions there.",
+    )
+
+for m in state.messages():
+    print(m["role"], ":", m["content"])
+
+print("answer 1", state["answer_1"])
+print("answer 2", state["answer_2"])
+```
+
+
+#### Calling a model using sglang sdk using the sglang built-in backend
+
+```python
+from sglang import function, system, user, assistant, gen, set_default_backend
+from mlflow_extensions.serving.compat.sglang import RuntimeEndpoint
+
+
+@function
+def multi_turn_question(s, question_1, question_2):
+    s += system("You are a helpful assistant.")
+    s += user(question_1)
+    s += assistant(gen("answer_1", max_tokens=256))
+    s += user(question_2)
+    s += assistant(gen("answer_2", max_tokens=256))
+
+set_default_backend(
+    RuntimeEndpoint(
+        "https://<>.com/serving-endpoints/<model-name>",
+        "<dapi..."
     )
 )
     
