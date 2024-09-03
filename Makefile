@@ -17,11 +17,13 @@ upload: check
 check:
 	@echo "Checking code..."
 	@black --check mlflow_extensions/
+	@black --check scripts/
 	@echo "Finished checking code..."
 
 fmt:
 	@echo "Formatting code..."
 	@black mlflow_extensions/
+	@black scripts/
 	@echo "Finished formatting code..."
 
 .PHONY: build
