@@ -156,7 +156,7 @@ class EzDeploy:
                 f"Deploying model: {name}; look at the serving tab to track progress..."
             )
         if endpoint_exists is False:
-            self._client.serving_endpoints.create_and_wait(
+            self._client.serving_endpoints.create(
                 name=name,
                 config=EndpointCoreConfigInput(
                     name=name,
@@ -173,7 +173,7 @@ class EzDeploy:
                 ),
             )
         else:
-            self._client.serving_endpoints.update_config_and_wait(
+            self._client.serving_endpoints.update_config(
                 name=name,
                 served_entities=[
                     ServedEntityInput(
