@@ -83,7 +83,7 @@ deployer.register()
 
 endpoint_name = "my-endpoint-name"
 
-deployer.deploy("my-endpoint-name")
+deployer.deploy(endpoint_name)
 
 
 model_name = prebuilt.vision.vllm.PHI_3_5_VISION_INSTRUCT_12K.engine_config.model
