@@ -1,3 +1,5 @@
+import json
+import os
 from dataclasses import dataclass
 from pathlib import Path
 from typing import List, Type, Optional, Iterator
@@ -7,6 +9,7 @@ import pandas as pd
 from httpx import Response, Request
 from mlflow.pyfunc import PythonModelContext
 
+from mlflow_extensions.serving.compute_details import get_compute_details
 from mlflow_extensions.serving.engines.base import (
     EngineProcess,
     debug_msg,
@@ -20,6 +23,10 @@ from mlflow_extensions.serving.serde_v2 import MlflowPyfuncHttpxSerializer
 class CustomEngineServingResponse:
     status: int
     data: dict
+
+
+DIAGNOSTICS_REQUEST_KEY = "COMPUTE_DIAGNOSTICS"
+ENABLE_DIAGNOSTICS_FLAG = "ENABLE_DIAGNOSTICS"
 
 
 class CustomServingEnginePyfuncWrapper(mlflow.pyfunc.PythonModel):
@@ -74,16 +81,45 @@ class CustomServingEnginePyfuncWrapper(mlflow.pyfunc.PythonModel):
                 raise ValueError(
                     f"Dataframe must have only one column, but received {len(model_input.columns)} columns"
                 )
-        return [
-            self._request_model(
-                MlflowPyfuncHttpxSerializer.deserialize_request(
-                    req,
-                    openai_base_url=self._engine.oai_http_client.base_url,
-                    server_base_url=self._engine.server_http_client.base_url,
+
+        responses = []
+        for req in model_input:
+            req: str
+            if (
+                req.startswith(DIAGNOSTICS_REQUEST_KEY)
+                and os.environ.get(ENABLE_DIAGNOSTICS_FLAG, False) is True
+            ):
+                parts = req.split(":")
+                if len(parts) > 1:
+                    compute_details = get_compute_details(parts[1])
+                else:
+                    compute_details = get_compute_details(cmd_key="all")
+                compute_details.update(
+                    {
+                        "command": self._engine_config.to_run_command(self.context),
+                    }
                 )
-            )
-            for req in model_input
-        ]
+                responses.append(json.dumps(compute_details))
+            elif (
+                req.startswith(DIAGNOSTICS_REQUEST_KEY)
+                and os.environ.get(ENABLE_DIAGNOSTICS_FLAG, False) is False
+            ):
+                responses.append(
+                    f"Diagnostics are disabled please set environment variable on your deployment "
+                    f"ENABLE_DIAGNOSTICS=true to enable them."
+                )
+
+            else:
+                responses.append(
+                    self._request_model(
+                        MlflowPyfuncHttpxSerializer.deserialize_request(
+                            req,
+                            openai_base_url=self._engine.oai_http_client.base_url,
+                            server_base_url=self._engine.server_http_client.base_url,
+                        )
+                    )
+                )
+        return responses
 
     def _setup_artifacts(self, local_dir: str = "/root/models"):
         self._artifacts = self._engine_config.setup_artifacts(local_dir)

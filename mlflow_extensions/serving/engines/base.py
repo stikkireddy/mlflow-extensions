@@ -14,6 +14,7 @@ import psutil
 from filelock import FileLock
 from mlflow.pyfunc import PythonModelContext
 
+from mlflow_extensions.serving.engines.gpu_utils import not_enough_shm
 from mlflow_extensions.version import get_mlflow_extensions_version
 
 
@@ -244,6 +245,9 @@ class EngineProcess(abc.ABC):
     def _spawn_server_proc(self, context: PythonModelContext = None):
         proc_env = os.environ.copy()
         server_details = {"HOST": self.config.host, "PORT": str(self.config.host)}
+        if not_enough_shm() is True:
+            debug_msg("Not enough shared memory for NCCL. Setting NCCL_SHM_DISABLE=1")
+            server_details["NCCL_SHM_DISABLE"] = "1"
         proc_env.update(server_details)
         command = self.config.to_run_command(context)
         if isinstance(command, list):

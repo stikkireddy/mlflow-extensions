@@ -15,7 +15,10 @@ from mlflow_extensions.databricks.deploy.gpu_configs import (
     ALL_VALID_GPUS,
 )
 from mlflow_extensions.serving.engines.base import EngineConfig, EngineProcess
-from mlflow_extensions.serving.wrapper import CustomServingEnginePyfuncWrapper
+from mlflow_extensions.serving.wrapper import (
+    CustomServingEnginePyfuncWrapper,
+    DIAGNOSTICS_REQUEST_KEY,
+)
 
 
 @dataclass(kw_only=True, frozen=True)
@@ -140,6 +143,7 @@ class EzDeploy:
         scale_to_zero: bool = True,
         workload_size: Literal["Small", "Medium", "Large"] = "Small",
         workload_type: Optional[str] = None,
+        enable_diagnostics: bool = False,
     ):
         gpu_cfg = self._config.serving_config.smallest_gpu(self._cloud)
         endpoint_exists = self._does_endpoint_exist(name)
@@ -155,6 +159,9 @@ class EzDeploy:
             print(
                 f"Deploying model: {name}; look at the serving tab to track progress..."
             )
+        environment_vars = {}
+        if enable_diagnostics is True:
+            environment_vars[DIAGNOSTICS_REQUEST_KEY] = "true"
         if endpoint_exists is False:
             self._client.serving_endpoints.create(
                 name=name,
@@ -168,6 +175,7 @@ class EzDeploy:
                             scale_to_zero_enabled=scale_to_zero,
                             workload_type=workload_type or gpu_cfg.name,
                             workload_size=workload_size,
+                            environment_vars=environment_vars,
                         )
                     ],
                 ),
@@ -183,6 +191,7 @@ class EzDeploy:
                         scale_to_zero_enabled=scale_to_zero,
                         workload_type=workload_type or gpu_cfg.name,
                         workload_size=workload_size,
+                        environment_vars=environment_vars,
                     )
                 ],
             )

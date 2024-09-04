@@ -73,7 +73,7 @@ class MlflowPyfuncHttpxSerializer:
 
     @staticmethod
     def deserialize_request(
-        serialized_request, *, openai_base_url: URL, server_base_url: URL
+        serialized_request: str, *, openai_base_url: URL, server_base_url: URL
     ):
         req_data = json.loads(serialized_request)
 

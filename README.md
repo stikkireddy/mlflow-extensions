@@ -34,27 +34,33 @@ pip install mlflow-extensions
 To make your deployments easier into a three step process we have created a simplified interface that lets you 
 download the model and then register in UC and deploy it in Databricks with the appropriate gpu hardware.
 
+<span style="color: red; font-weight: bold;">
+[AS OF SEPT 4, 2024] IF YOU ARE DEPLOYING MODELS INTO HARDWARE WITH MULTIPLE GPUS AT THE MOMENT SHM (SHARED ACCESS MEMORY) IS LIMITED IN GPU CONTAINERS TO 64MB DEFAULT. PLEASE REACH OUT TO YOUR DATABRICKS ACCOUNT TEAM IF PERFORMANCE IS IMPACTING YOU TO HAVE THIS INCREASED. THIS IS A KNOWN LIMIT OF THE CONTAINERS AND THIS FRAMEWORK DISABLES NCCL USAGE OF SHM.
+</span>
+
 Out of the box Ez Deploy Models: 
 
 **Note this framework supports much larger set of models these are the ones that have been curated and validated.**
 
-| model_type   | cfg_path                                          | huggingface_link                                          | context_length   | min_azure_ep_type_gpu          | min_aws_ep_type_gpu           |
-|:-------------|:--------------------------------------------------|:----------------------------------------------------------|:-----------------|:-------------------------------|:------------------------------|
-| text         | prebuilt.text.sglang.GEMMA_2_9B_IT                | https://huggingface.co/google/gemma-2-9b-it               | Default          | GPU_LARGE [A100_80Gx1 80GB]    | MULTIGPU_MEDIUM [A10Gx4 96GB] |
-| text         | prebuilt.text.vllm.NUEXTRACT                      | https://huggingface.co/numind/NuExtract                   | Default          | GPU_LARGE [A100_80Gx1 80GB]    | GPU_MEDIUM [A10Gx1 24GB]      |
-| text         | prebuilt.text.vllm.NUEXTRACT_TINY                 | https://huggingface.co/numind/NuExtract-tiny              | Default          | GPU_SMALL [T4x1 16GB]          | GPU_SMALL [T4x1 16GB]         |
-| text         | prebuilt.text.vllm.NOUS_HERMES_3_LLAMA_3_1_8B_64K | https://huggingface.co/NousResearch/Hermes-3-Llama-3.1-8B | Default          | GPU_LARGE_2 [A100_80Gx2 160GB] | GPU_MEDIUM_8 [A10Gx8 192GB]   |
-| vision       | prebuilt.vision.sglang.LLAVA_1_5_LLAMA            | https://huggingface.co/liuhaotian/llava-v1.5-7b           | Default          | GPU_LARGE [A100_80Gx1 80GB]    | MULTIGPU_MEDIUM [A10Gx4 96GB] |
-| vision       | prebuilt.vision.sglang.LLAVA_1_6_VICUNA           | https://huggingface.co/liuhaotian/llava-v1.6-vicuna-7b    | Default          | GPU_LARGE [A100_80Gx1 80GB]    | MULTIGPU_MEDIUM [A10Gx4 96GB] |
-| vision       | prebuilt.vision.sglang.LLAVA_1_6_YI_34B           | https://huggingface.co/liuhaotian/llava-v1.6-34b          | Default          | GPU_LARGE [A100_80Gx1 80GB]    | MULTIGPU_MEDIUM [A10Gx4 96GB] |
-| vision       | prebuilt.vision.sglang.LLAVA_NEXT_LLAMA3_8B       | https://huggingface.co/lmms-lab/llama3-llava-next-8b      | Default          | GPU_LARGE [A100_80Gx1 80GB]    | MULTIGPU_MEDIUM [A10Gx4 96GB] |
-| vision       | prebuilt.vision.vllm.PHI_3_5_VISION_INSTRUCT_4K   | https://huggingface.co/microsoft/Phi-3.5-vision-instruct  | 4096             | GPU_SMALL [T4x1 16GB]          | GPU_SMALL [T4x1 16GB]         |
-| vision       | prebuilt.vision.vllm.PHI_3_5_VISION_INSTRUCT_8K   | https://huggingface.co/microsoft/Phi-3.5-vision-instruct  | 8192             | GPU_SMALL [T4x1 16GB]          | GPU_SMALL [T4x1 16GB]         |
-| vision       | prebuilt.vision.vllm.PHI_3_5_VISION_INSTRUCT_12K  | https://huggingface.co/microsoft/Phi-3.5-vision-instruct  | 12000            | GPU_LARGE [A100_80Gx1 80GB]    | GPU_MEDIUM [A10Gx1 24GB]      |
-| vision       | prebuilt.vision.vllm.PHI_3_5_VISION_INSTRUCT_32K  | https://huggingface.co/microsoft/Phi-3.5-vision-instruct  | 32000            | GPU_LARGE [A100_80Gx1 80GB]    | MULTIGPU_MEDIUM [A10Gx4 96GB] |
-| vision       | prebuilt.vision.vllm.PHI_3_5_VISION_INSTRUCT_64K  | https://huggingface.co/microsoft/Phi-3.5-vision-instruct  | 64000            | GPU_LARGE [A100_80Gx1 80GB]    | MULTIGPU_MEDIUM [A10Gx4 96GB] |
-| vision       | prebuilt.vision.vllm.PHI_3_5_VISION_INSTRUCT_128K | https://huggingface.co/microsoft/Phi-3.5-vision-instruct  | Default          | GPU_LARGE_2 [A100_80Gx2 160GB] | GPU_MEDIUM_8 [A10Gx8 192GB]   |
-
+| model_type   | cfg_path                                            | huggingface_link                                          | context_length   | min_azure_ep_type_gpu          | min_aws_ep_type_gpu           |
+|:-------------|:----------------------------------------------------|:----------------------------------------------------------|:-----------------|:-------------------------------|:------------------------------|
+| text         | prebuilt.text.sglang.GEMMA_2_9B_IT                  | https://huggingface.co/google/gemma-2-9b-it               | Default          | GPU_LARGE [A100_80Gx1 80GB]    | MULTIGPU_MEDIUM [A10Gx4 96GB] |
+| text         | prebuilt.text.vllm.NUEXTRACT                        | https://huggingface.co/numind/NuExtract                   | Default          | GPU_LARGE [A100_80Gx1 80GB]    | GPU_MEDIUM [A10Gx1 24GB]      |
+| text         | prebuilt.text.vllm.NUEXTRACT_TINY                   | https://huggingface.co/numind/NuExtract-tiny              | Default          | GPU_SMALL [T4x1 16GB]          | GPU_SMALL [T4x1 16GB]         |
+| text         | prebuilt.text.vllm.NOUS_HERMES_3_LLAMA_3_1_8B_64K   | https://huggingface.co/NousResearch/Hermes-3-Llama-3.1-8B | 64000            | GPU_LARGE [A100_80Gx1 80GB]    | MULTIGPU_MEDIUM [A10Gx4 96GB] |
+| text         | prebuilt.text.vllm.NOUS_HERMES_3_LLAMA_3_1_8B_128K  | https://huggingface.co/NousResearch/Hermes-3-Llama-3.1-8B | Default          | GPU_LARGE_2 [A100_80Gx2 160GB] | GPU_MEDIUM_8 [A10Gx8 192GB]   |
+| vision       | prebuilt.vision.sglang.LLAVA_1_5_LLAMA              | https://huggingface.co/liuhaotian/llava-v1.5-7b           | Default          | GPU_LARGE [A100_80Gx1 80GB]    | MULTIGPU_MEDIUM [A10Gx4 96GB] |
+| vision       | prebuilt.vision.sglang.LLAVA_1_6_VICUNA             | https://huggingface.co/liuhaotian/llava-v1.6-vicuna-7b    | Default          | GPU_LARGE [A100_80Gx1 80GB]    | MULTIGPU_MEDIUM [A10Gx4 96GB] |
+| vision       | prebuilt.vision.sglang.LLAVA_1_6_YI_34B             | https://huggingface.co/liuhaotian/llava-v1.6-34b          | Default          | GPU_LARGE [A100_80Gx1 80GB]    | MULTIGPU_MEDIUM [A10Gx4 96GB] |
+| vision       | prebuilt.vision.sglang.LLAVA_NEXT_LLAMA3_8B         | https://huggingface.co/lmms-lab/llama3-llava-next-8b      | Default          | GPU_LARGE [A100_80Gx1 80GB]    | MULTIGPU_MEDIUM [A10Gx4 96GB] |
+| vision       | prebuilt.vision.vllm.PHI_3_5_VISION_INSTRUCT_4K     | https://huggingface.co/microsoft/Phi-3.5-vision-instruct  | 4096             | GPU_SMALL [T4x1 16GB]          | GPU_SMALL [T4x1 16GB]         |
+| vision       | prebuilt.vision.vllm.PHI_3_5_VISION_INSTRUCT_8K     | https://huggingface.co/microsoft/Phi-3.5-vision-instruct  | 8192             | GPU_SMALL [T4x1 16GB]          | GPU_SMALL [T4x1 16GB]         |
+| vision       | prebuilt.vision.vllm.PHI_3_5_VISION_INSTRUCT_12K    | https://huggingface.co/microsoft/Phi-3.5-vision-instruct  | 12000            | GPU_LARGE [A100_80Gx1 80GB]    | GPU_MEDIUM [A10Gx1 24GB]      |
+| vision       | prebuilt.vision.vllm.PHI_3_5_VISION_INSTRUCT_32K    | https://huggingface.co/microsoft/Phi-3.5-vision-instruct  | 32000            | GPU_LARGE [A100_80Gx1 80GB]    | MULTIGPU_MEDIUM [A10Gx4 96GB] |
+| vision       | prebuilt.vision.vllm.PHI_3_5_VISION_INSTRUCT_64K    | https://huggingface.co/microsoft/Phi-3.5-vision-instruct  | 64000            | GPU_LARGE [A100_80Gx1 80GB]    | MULTIGPU_MEDIUM [A10Gx4 96GB] |
+| vision       | prebuilt.vision.vllm.PHI_3_5_VISION_INSTRUCT_128K   | https://huggingface.co/microsoft/Phi-3.5-vision-instruct  | Default          | GPU_LARGE_2 [A100_80Gx2 160GB] | GPU_MEDIUM_8 [A10Gx8 192GB]   |
+| audio        | prebuilt.audio.vllm.FIXIE_ULTRA_VOX_0_4_64K_CONFIG  | https://huggingface.co/fixie-ai/ultravox-v0_4             | 64000            | GPU_LARGE [A100_80Gx1 80GB]    | MULTIGPU_MEDIUM [A10Gx4 96GB] |
+| audio        | prebuilt.audio.vllm.FIXIE_ULTRA_VOX_0_4_128K_CONFIG | https://huggingface.co/fixie-ai/ultravox-v0_4             | Default          | GPU_LARGE_2 [A100_80Gx2 160GB] | GPU_MEDIUM_8 [A10Gx8 192GB]   |
 
 ### Deploying a model using EZ Deploy
 
@@ -404,6 +410,12 @@ where you ran into issues.
 Here are the list of supported models for ollama. [Link to model list.](https://ollama.com/library)
 
 **Keep in mind databricks serving endpoints only have 4gb of memory per container.** [Link to docs.](https://docs.databricks.com/en/machine-learning/model-serving/model-serving-limits.html#limitations)
+
+## Hardware Diagnostics
+
+### GPU Diagnostics
+
+TBD
 
 ## Optimizations Roadmap
 
