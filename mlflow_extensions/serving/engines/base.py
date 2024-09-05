@@ -195,6 +195,10 @@ class EngineProcess(abc.ABC):
         self._health_check_thread = None
 
     @property
+    def server_process(self):
+        return self._proc
+
+    @property
     def oai_http_client(self) -> httpx.Client:
         return self._oai_http_client
 
