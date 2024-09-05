@@ -67,6 +67,7 @@ class ModelContextRunner:
         )
         self.ez_config.engine_config.to_run_command(self.model_context)
         self.engine.start_proc(self.model_context)
+        return self
 
     def add_error(self, *, error_msg: str):
         self.results.append(
