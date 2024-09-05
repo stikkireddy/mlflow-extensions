@@ -46,7 +46,12 @@ class RequestResult:
 
 
 class ModelContextRunner:
-    def __init__(self, ez_config: EzDeployConfig, current_gpu: GPUConfig):
+    def __init__(
+        self,
+        ez_config: EzDeployConfig,
+        current_gpu: GPUConfig,
+        skip_health_check: bool = True,
+    ):
         self.ez_config = ez_config
         self.engine: Optional[EngineProcess] = None
         self.artifacts: Optional[dict] = None
@@ -54,6 +59,7 @@ class ModelContextRunner:
         self._results: List[RequestResult] = []
         self.current_gpu = current_gpu
         self.command: Optional[str] = None
+        self._skip_health_check = skip_health_check
 
     def __enter__(self):
         try:
@@ -68,7 +74,9 @@ class ModelContextRunner:
             artifacts=self.artifacts, model_config={}
         )
         self.ez_config.engine_config.to_run_command(self.model_context)
-        self.engine.start_proc(self.model_context)
+        self.engine.start_proc(
+            self.model_context, health_check_thread=not self._skip_health_check
+        )
         self.add_success(result="SUCCESSFULLY STARTED SERVER")
         return self
 
