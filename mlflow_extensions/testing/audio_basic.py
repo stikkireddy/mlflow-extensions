@@ -22,7 +22,7 @@ def encode_audio_base64_from_url(audio_url: str) -> str:
     return result
 
 
-@run_if(modality=Modality.TEXT.value)
+@run_if(modality=Modality.AUDIO.value)
 @inject_openai_client
 def query_audio(
     *,
