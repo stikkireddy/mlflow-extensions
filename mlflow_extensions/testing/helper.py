@@ -42,8 +42,8 @@ def inject_openai_client(func):
         port = kwargs.get("port", 9989)
         from openai import OpenAI
 
-        client = OpenAI(base_url=f"http://{host}:{port}", api_key="local")
-        return func(client=client, **kwargs)
+        client = OpenAI(base_url=f"http://{host}:{port}/v1", api_key="local")
+        return func(*args, client=client, **kwargs)
 
     return wrapper
 
