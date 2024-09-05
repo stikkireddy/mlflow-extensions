@@ -247,6 +247,7 @@ response = client.chat.completions.create(
 Supported engines:
 - [x] vLLM
 - [x] Ollama
+- [x] SGlang
 
 Mlflow extensions offers a wrapper on top of openai sdk to intercept requests and conform them to model serving infra.
 
