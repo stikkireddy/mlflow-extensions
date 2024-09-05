@@ -1,23 +1,21 @@
-from mlflow_extensions.testing.runner import (
-    inject_openai_client,
-    run_if,
-    Modality,
-    ModelContextRunner,
-)
+from mlflow_extensions.testing.helper import run_if, inject_openai_client, Modality
 import typing
 
 if typing.TYPE_CHECKING is True:
     from openai import OpenAi
+    from mlflow_extensions.testing.runner import (
+        ModelContextRunner,
+    )
 
 
 @run_if(modality=Modality.TEXT.value)
 @inject_openai_client
 def query_text(
     *,
-    ctx: ModelContextRunner,
-    modality_type: str,
+    ctx: "ModelContextRunner",
     client: "OpenAi",
     model: str,
+    modality_type: str = None,
     host: str = "0.0.0.0",  # noqa
     port: int = 9989,  # noqa
     repeat_n: int = 5,

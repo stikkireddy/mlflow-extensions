@@ -1,15 +1,9 @@
-import functools
-import inspect
 from dataclasses import dataclass, asdict
-from enum import Enum
-from typing import Tuple, Optional, List, Type
-
-from mlflow.pyfunc import PythonModelContext
+from typing import Tuple, Optional, List
 
 from mlflow_extensions.databricks.deploy.ez_deploy import EzDeployConfig
 from mlflow_extensions.databricks.deploy.gpu_configs import (
     GPUConfig,
-    AzureServingGPUConfig,
 )
 from mlflow_extensions.databricks.prebuilt import prebuilt
 from mlflow_extensions.serving.engines.base import EngineProcess
@@ -17,63 +11,9 @@ from mlflow_extensions.testing.audio_basic import (
     query_audio,
     encode_audio_base64_from_url,
 )
+from mlflow_extensions.testing.helper import ServerFramework
 from mlflow_extensions.testing.text_basic import query_text
 from mlflow_extensions.testing.vision_basic import query_vision
-
-
-class Modality(Enum):
-    VISION = "vision"
-    TEXT = "text"
-    AUDIO = "audio"
-
-
-class ServerFramework(Enum):
-    VLLM = "vllm"
-    SGLANG = "sglang"
-
-
-def run_if(modality: Modality):
-    def outer(func):
-
-        expected_kwargs = ["modality"]
-        for kwarg in expected_kwargs:
-            if kwarg not in inspect.getfullargspec(func).kwonlyargs:
-                raise ValueError(
-                    f"Function must have {expected_kwargs} as keyword-only arguments"
-                )
-
-        @functools.wraps(func)
-        def inner(*args, **kwargs):
-            this_modality = kwargs.get("modality")
-            if modality == this_modality:
-                return func(*args, **kwargs)
-
-            print(
-                f"Skipping {func.__name__} because modality is {this_modality} not {modality}"
-            )
-            return
-
-        return inner
-
-    return outer
-
-
-def inject_openai_client(func):
-    # error if function has regular args
-    has_args = inspect.getfullargspec(func).args
-    if has_args:
-        raise ValueError("Function cannot have regular arguments")
-
-    @functools.wraps(func)
-    def wrapper(*args, **kwargs):
-        host = kwargs.get("host", "0.0.0.0")
-        port = kwargs.get("port", 9989)
-        from openai import OpenAI
-
-        client = OpenAI(base_url=f"http://{host}:{port}", api_key="local")
-        return func(client=client, **kwargs)
-
-    return wrapper
 
 
 def make_process_and_get_artifacts(
@@ -171,7 +111,9 @@ class ModelContextRunner:
             self.engine.stop_proc()
 
 
-def run_all_tests(*, gpu_config: GPUConfig, server_framework: ServerFramework) -> List[RequestResult]:
+def run_all_tests(
+    *, gpu_config: GPUConfig, server_framework: ServerFramework
+) -> List[RequestResult]:
     # gettysburg.wav is a 17 second audio file
     audio_data = encode_audio_base64_from_url(
         "https://www2.cs.uic.edu/~i101/SoundFiles/gettysburg.wav"
