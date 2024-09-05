@@ -116,14 +116,6 @@ class ModelContextRunner:
 
         if self.engine is not None and self.engine.server_process is not None:
             self.engine.stop_proc()
-            try:
-                subprocess.run(
-                    f"kill $(lsof -t -i:{self.ez_config.engine_config.port})",
-                    shell=True,
-                )
-                self.add_error(error_msg="Server was not stopped properly")
-            except Exception as e:
-                print("process was already stopped nothing is running", e)
 
 
 def run_all_tests(
