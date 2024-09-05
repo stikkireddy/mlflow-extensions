@@ -208,3 +208,5 @@ def run_all_tests(*, gpu_config: GPUConfig, server_framework: ServerFramework) -
                             )
 
                         results.extend(ctx.results)
+
+    return results
