@@ -1,3 +1,4 @@
+import subprocess
 from dataclasses import dataclass, asdict
 from typing import Tuple, Optional, List
 
@@ -62,11 +63,13 @@ class ModelContextRunner:
                 "mlflow is required to use this class run pip install -U mlflow"
             )
         self.engine, self.artifacts = make_process_and_get_artifacts(self.ez_config)
+        self.add_success(result="SUCCESSFULLY LOADED ARTIFACTS")
         self.model_context = PythonModelContext(
             artifacts=self.artifacts, model_config={}
         )
         self.ez_config.engine_config.to_run_command(self.model_context)
         self.engine.start_proc(self.model_context)
+        self.add_success(result="SUCCESSFULLY STARTED SERVER")
         return self
 
     def add_error(self, *, error_msg: str):
@@ -107,13 +110,20 @@ class ModelContextRunner:
     def results_as_dict(self):
         return [asdict(result) for result in self._results]
 
-    def _cleanup(self):
-        if self.engine is not None:
-            self.engine.start_proc(self.model_context)
-
     def __exit__(self, exc_type, exc_val, exc_tb):
+        if exc_type is not None:
+            self.add_error(error_msg=str(exc_val))
+
         if self.engine is not None and self.engine.server_process is not None:
             self.engine.stop_proc()
+            try:
+                subprocess.run(
+                    f"kill $(lsof -t -i:{self.ez_config.engine_config.port})",
+                    shell=True,
+                )
+                self.add_error(error_msg="Server was not stopped properly")
+            except Exception as e:
+                print("process was already stopped nothing is running", e)
 
 
 def run_all_tests(
