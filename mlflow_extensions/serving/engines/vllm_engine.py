@@ -117,7 +117,7 @@ class VLLMEngineConfig(EngineConfig):
     def engine_pip_reqs(
         self,
         *,
-        vllm_version: str = "0.5.5",
+        vllm_version: str = "0.6.0",
         lm_format_enforcer_version: str = "0.10.6",
         outlines_version: str = "0.0.46",
     ) -> List[str]:

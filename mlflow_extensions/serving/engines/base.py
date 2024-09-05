@@ -312,7 +312,9 @@ class EngineProcess(abc.ABC):
                     attempt_count = 0
 
     # todo add local lora paths
-    def start_proc(self, context: PythonModelContext = None):
+    def start_proc(
+        self, context: PythonModelContext = None, health_check_thread: bool = True
+    ):
         # kill process in port if already running
         time.sleep(random.randint(1, 5))
         debug_msg(f"Attempting to acquire Lock")
@@ -321,13 +323,14 @@ class EngineProcess(abc.ABC):
             if self.health_check() is False:
                 self._spawn_server_proc(context)
                 self._run_health_check = True
-                self._health_check_thread = Thread(
-                    target=self.ensure_server_is_running,
-                    kwargs={
-                        "context": context,
-                    },
-                )
-                if self._health_check_thread is not None:
-                    self._health_check_thread.start()
+                if health_check_thread is True:
+                    self._health_check_thread = Thread(
+                        target=self.ensure_server_is_running,
+                        kwargs={
+                            "context": context,
+                        },
+                    )
+                    if self._health_check_thread is not None:
+                        self._health_check_thread.start()
             else:
                 debug_msg(f"{self.engine_name} already running")
