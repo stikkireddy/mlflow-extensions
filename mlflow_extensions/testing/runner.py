@@ -39,6 +39,10 @@ class RequestResult:
     cloud: str
     server_command: str
 
+    @staticmethod
+    def make_df_friendly(results: List["RequestResult"]):
+        return [asdict(result) for result in results]
+
 
 class ModelContextRunner:
     def __init__(self, ez_config: EzDeployConfig, current_gpu: GPUConfig):
