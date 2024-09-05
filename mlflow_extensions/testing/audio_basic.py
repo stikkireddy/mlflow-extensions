@@ -2,16 +2,14 @@ import base64
 
 import requests
 
-from mlflow_extensions.testing.runner import (
-    inject_openai_client,
-    run_if,
-    Modality,
-    ModelContextRunner,
-)
+from mlflow_extensions.testing.helper import run_if, inject_openai_client, Modality
 import typing
 
 if typing.TYPE_CHECKING is True:
     from openai import OpenAi
+    from mlflow_extensions.testing.runner import (
+        ModelContextRunner,
+    )
 
 
 def encode_audio_base64_from_url(audio_url: str) -> str:
@@ -28,11 +26,11 @@ def encode_audio_base64_from_url(audio_url: str) -> str:
 @inject_openai_client
 def query_audio(
     *,
-    ctx: ModelContextRunner,
-    modality_type: str,
+    ctx: "ModelContextRunner",
     client: "OpenAi",
     audio_data: str,
     model: str,
+    modality_type: str = None,
     host: str = "0.0.0.0",  # noqa
     port: int = 9989,  # noqa
     repeat_n: int = 5,
