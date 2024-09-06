@@ -1,3 +1,5 @@
+import subprocess
+import os
 import functools
 import inspect
 from enum import Enum
@@ -51,3 +53,37 @@ def inject_openai_client(func):
 class ServerFramework(Enum):
     VLLM = "vllm"
     SGLANG = "sglang"
+
+
+def get_process_ids(search_string):
+    try:
+        # Run 'ps aux' to get the process list
+        result = subprocess.run(['ps', 'aux'], text=True, capture_output=True, check=True)
+        
+        # Process the output
+        pids = []
+        for line in result.stdout.splitlines():
+            if search_string in line:
+                # Extract PID (assumed to be in the second column)
+                parts = line.split()
+                if len(parts) > 1 and parts[1].isdigit():
+                    pids.append(parts[1])
+        
+        return pids
+
+    except subprocess.CalledProcessError as e:
+        print(f"An error occurred: {e}")
+        return []
+
+def kill_process(pid):
+    try:
+        subprocess.run(['kill', "-9", pid], check=True)
+        print(f"Killed process with PID {pid}")
+    except subprocess.CalledProcessError as e:
+        print(f"Failed to kill process with PID {pid}: {e}")
+
+
+def kill_processes_containing(search_string):
+    pids = get_process_ids(search_string)
+    for pid in pids:
+        kill_process(pid)

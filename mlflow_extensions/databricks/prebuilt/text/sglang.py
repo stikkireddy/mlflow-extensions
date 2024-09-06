@@ -18,7 +18,20 @@ GEMMA_2_9B_IT_CONFIG = EzDeployConfig(
     ),
 )
 
+# Requires HF token
+# https://huggingface.co/meta-llama/Meta-Llama-3.1-8B
+META_LLAMA_3_1_8B_INSTRUCT_CONFIG = EzDeployConfig(
+    name=f"meta_llama_3_1_8b_instruct",
+    engine_proc=_ENGINE,
+    engine_config=_ENGINE_CONFIG(model="meta-llama/Meta-Llama-3.1-8B-Instruct"),
+    serving_config=ServingConfig(
+        # rough estimate for the engines this includes model weights + kv cache + overhead + intermediate states
+        minimum_memory_in_gb=30,
+    ),
+)
+
 
 @dataclass(frozen=True)
 class SglangText:
     GEMMA_2_9B_IT: EzDeployConfig = field(default_factory=lambda: GEMMA_2_9B_IT_CONFIG)
+    META_LLAMA_3_1_8B_INSTRUCT_CONFIG: EzDeployConfig = field(default_factory=lambda: META_LLAMA_3_1_8B_INSTRUCT_CONFIG)

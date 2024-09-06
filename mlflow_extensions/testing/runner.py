@@ -1,4 +1,5 @@
 import subprocess
+import time
 from dataclasses import dataclass, asdict
 from typing import Tuple, Optional, List
 
@@ -12,7 +13,7 @@ from mlflow_extensions.testing.audio_basic import (
     query_audio,
     encode_audio_base64_from_url,
 )
-from mlflow_extensions.testing.helper import ServerFramework
+from mlflow_extensions.testing.helper import ServerFramework, kill_processes_containing
 from mlflow_extensions.testing.text_basic import query_text
 from mlflow_extensions.testing.vision_basic import query_vision
 
@@ -143,6 +144,10 @@ def run_all_tests(
                         ezconfig.serving_config.minimum_memory_in_gb
                         <= gpu_config.gpu_type.memory_gb
                     ):
+                        # kill everything before starting a new process
+                        # we want to make sure ports are available
+                        kill_processes_containing("sglang.launch_server")
+                        kill_processes_containing("vllm.entrypoints.openai.api_server")
                         with ModelContextRunner(
                             ez_config=ezconfig, current_gpu=gpu_config
                         ) as ctx:
@@ -165,5 +170,7 @@ def run_all_tests(
                             )
 
                         results.extend(ctx.results)
+                        print("WAITING FOR SERVER TO CLEANLY CLOSE BEFORE STARTING NEW SERVER")
+                        time.sleep(5)
 
     return results
