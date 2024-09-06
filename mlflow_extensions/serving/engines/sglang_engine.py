@@ -1,21 +1,21 @@
 import json
 import sys
-from dataclasses import field, dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
-from typing import List, Dict, Optional, Union
+from typing import Dict, List, Optional, Union
 
 from mlflow.pyfunc import PythonModelContext
 
 from mlflow_extensions.serving.engines import gpu_utils
 from mlflow_extensions.serving.engines.base import (
-    EngineConfig,
-    debug_msg,
-    EngineProcess,
     Command,
+    EngineConfig,
+    EngineProcess,
+    debug_msg,
 )
 from mlflow_extensions.serving.engines.huggingface_utils import (
-    snapshot_download_local,
     ensure_chat_template,
+    snapshot_download_local,
 )
 
 

@@ -4,8 +4,8 @@ import sys
 from typing import Optional
 
 from mlflow_extensions.serving.compat import (
-    inject_mlflow_openai_compat_client,
     CustomMLFlowHttpClient,
+    inject_mlflow_openai_compat_client,
 )
 
 MODULE = "sglang"
@@ -34,8 +34,8 @@ def RuntimeEndpoint(
     api_key: Optional[str] = None,
     verify: Optional[str] = None,
 ):
-    from sglang import RuntimeEndpoint
     import httpx
+    from sglang import RuntimeEndpoint
 
     def patched_http_request(url, json=None, stream=False, api_key=None, verify=None):
         """A patched version of the httpx request to modify sglang interaction"""

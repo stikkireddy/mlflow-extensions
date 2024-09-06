@@ -1,4 +1,4 @@
-PYTHON :=  $(shell which python)
+PYTHON := python
 
 TOP_DIR := .
 SRC_DIR := $(TOP_DIR)/mlflow_extensions
@@ -14,11 +14,11 @@ TARGET := $(DIST_DIR)/$(LIB)
 
 BDIST := $(PYTHON) setup.py bdist_wheel sdist
 PIP_INSTALL := $(PYTHON) -m pip install 
-PYTEST := $(shell which pytest) -s
-BLACK := $(shell which black)
-ISORT := $(shell which isort)
-PUBLISH := $(shell which twine) upload
-FIND := $(shell which find)
+PYTEST := pytest -s
+BLACK := black
+ISORT := isort
+PUBLISH := twine upload
+FIND := find
 RM := rm -rf
 CD := cd
 
@@ -42,8 +42,8 @@ check:
 
 fmt:
 	@echo "Formatting code..."
-	@$(BLACK) $(SRC_DIR) $(SCRIPTS_DIR) $(TEST_DIR)
 	@$(ISORT) $(SRC_DIR) $(SCRIPTS_DIR) $(TEST_DIR)
+	@$(BLACK) $(SRC_DIR) $(SCRIPTS_DIR) $(TEST_DIR)
 	@echo "Finished formatting code."
 
 clean:
@@ -65,7 +65,9 @@ distclean: clean
 	@echo "Finished cleaning up distribution artifacts."
 
 test:
-	$(PYTEST) $(TEST_DIR)
+	@echo "Running tests..."
+	@$(PYTEST) --cov=$(SRC_DIR) $(TEST_DIR)
+	@echo "Finished running tests."
 
 help:
 	$(info TOP_DIR: $(TOP_DIR))

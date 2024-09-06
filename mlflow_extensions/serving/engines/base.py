@@ -5,9 +5,9 @@ import signal
 import socket
 import subprocess
 import time
-from dataclasses import field, dataclass
+from dataclasses import dataclass, field
 from threading import Thread
-from typing import List, Optional, Dict, Union
+from typing import Dict, List, Optional, Union
 
 import httpx
 import psutil

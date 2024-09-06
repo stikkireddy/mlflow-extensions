@@ -1,23 +1,20 @@
 import json
-from dataclasses import dataclass, asdict, field
-from typing import Type, Optional, Literal, List
+from dataclasses import asdict, dataclass, field
+from typing import List, Literal, Optional, Type
 
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.errors import ResourceDoesNotExist
-from databricks.sdk.service.serving import (
-    EndpointCoreConfigInput,
-    ServedEntityInput,
-)
+from databricks.sdk.service.serving import EndpointCoreConfigInput, ServedEntityInput
 
 from mlflow_extensions.databricks.deploy.gpu_configs import (
-    GPUConfig,
-    Cloud,
     ALL_VALID_GPUS,
+    Cloud,
+    GPUConfig,
 )
 from mlflow_extensions.serving.engines.base import EngineConfig, EngineProcess
 from mlflow_extensions.serving.wrapper import (
-    CustomServingEnginePyfuncWrapper,
     DIAGNOSTICS_REQUEST_KEY,
+    CustomServingEnginePyfuncWrapper,
 )
 
 

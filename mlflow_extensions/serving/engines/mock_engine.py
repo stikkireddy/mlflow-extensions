@@ -4,8 +4,8 @@ from typing import Dict, List, Union
 from mlflow.pyfunc import PythonModelContext
 
 from mlflow_extensions.serving.engines.base import (
-    EngineConfig,
     Command,
+    EngineConfig,
     EngineProcess,
     debug_msg,
 )

@@ -1,0 +1,7 @@
+pyspark
+numpy
+pandas
+databricks-sdk
+psutil
+pytest
+pytest-cov

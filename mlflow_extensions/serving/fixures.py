@@ -1,14 +1,14 @@
 import json
 import os
+import queue
 import signal
 import subprocess
 import time
 import typing
 from threading import Thread
-from typing import Optional, List, Dict, Any
+from typing import Any, Dict, List, Optional
 
 import httpx
-import queue
 
 from mlflow_extensions.serving.engines.base import debug_msg
 from mlflow_extensions.serving.serde_v2 import MlflowPyfuncHttpxSerializer
