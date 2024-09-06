@@ -90,7 +90,7 @@ class ModelContextRunner:
                 is_error=True,
                 cloud=self.current_gpu.cloud.value,
                 did_server_crash=self.engine.is_process_healthy() is False,
-                framework=self.ez_config.engine_proc.__class__.__name__,
+                framework=self.ez_config.engine_proc.__name__,
                 server_command=self.command,
             )
         )
@@ -105,7 +105,7 @@ class ModelContextRunner:
                 is_error=False,
                 cloud=self.current_gpu.cloud.value,
                 did_server_crash=self.engine.is_process_healthy() is False,
-                framework=self.ez_config.engine_proc.__class__.__name__,
+                framework=self.ez_config.engine_proc.__name__,
                 server_command=self.command,
             )
         )
