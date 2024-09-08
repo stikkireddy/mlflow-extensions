@@ -51,7 +51,7 @@ class LocalTestServer:
         self._registry_is_uc = registry_is_uc
         self._additional_serving_flags = additional_serving_flags or []
         if (
-            self._use_local_env is False
+            self._use_local_env is True
             and "--env-manager" not in self._additional_serving_flags
         ):
             self._additional_serving_flags.append("--env-manager")
