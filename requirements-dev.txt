@@ -1,7 +1,8 @@
-pyspark
+pyspark[connect]
 numpy
 pandas
 databricks-sdk
 psutil
 pytest
 pytest-cov
+pytest-xdist

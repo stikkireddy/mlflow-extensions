@@ -4,17 +4,19 @@ TOP_DIR := .
 SRC_DIR := $(TOP_DIR)/mlflow_extensions
 DIST_DIR := $(TOP_DIR)/dist
 TEST_DIR := $(TOP_DIR)/tests
+REPORT_DIR := $(TEST_DIR)/coverage_report
 SCRIPTS_DIR := $(TOP_DIR)/scripts
 LIB_NAME := mlflow_extensions
 LIB_VERSION := $(shell $(PYTHON) -c "from mlflow_extensions.version import get_mlflow_extensions_version; print(get_mlflow_extensions_version())")
 LIB_SUFFIX := py3-none-any.whl
 LIB := $(LIB_NAME)-$(LIB_VERSION)-$(LIB_SUFFIX)
 TARGET := $(DIST_DIR)/$(LIB)
+INTEGRATION ?= false
 
 
 BDIST := $(PYTHON) setup.py bdist_wheel sdist
 PIP_INSTALL := $(PYTHON) -m pip install 
-PYTEST := pytest -s
+PYTEST := pytest -s -n auto
 BLACK := black
 ISORT := isort
 PUBLISH := twine upload
@@ -65,9 +67,18 @@ distclean: clean
 	@echo "Finished cleaning up distribution artifacts."
 
 test:
-	@echo "Running tests..."
-	@$(PYTEST) --cov=$(SRC_DIR) $(TEST_DIR)
-	@echo "Finished running tests."
+ifeq ($(INTEGRATION), true)
+	@echo "Running integration tests..."
+#	@$(PYTEST) -m integration --cov-report term-missing --cov-report html:$(REPORT_DIR)  --cov=$(SRC_DIR) $(TEST_DIR)
+	@$(PYTEST) -m integration $(TEST_DIR)
+	@echo "Finished running integration tests."
+else
+	@echo "Running unit tests..."
+#	@$(PYTEST) -m "not integration" --cov-report term-missing --cov-report html:$(REPORT_DIR)  --cov=$(SRC_DIR) $(TEST_DIR)
+	@$(PYTEST) -m "not integration" $(TEST_DIR)
+	@echo "Finished unit unit tests."
+endif
+	
 
 help:
 	$(info TOP_DIR: $(TOP_DIR))
@@ -85,9 +96,12 @@ help:
 	$(info       distclean    - removes distribution artifacts)
 	$(info       fmt          - format source code)
 	$(info       check        - format source code)
-	$(info       test         - run unit tests)
+	$(info       test         - run unit tests. Set INTEGRATION=true to run integration tests. Default is false)
 	$(info       upload       - publish wheel to pypi/artifactory server)
-
+	$(info )
+	$(info  Example: $$> make test INTEGRATION=true)
+	$(info )
+	
 	@true
 
 .PHONY: build upload check fmt clean distclean help
