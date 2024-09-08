@@ -93,6 +93,8 @@ class LocalTestServer:
             self._model_uri,
             "-p",
             str(self._test_serving_port),
+            "-w",
+            "4",
             *self._additional_serving_flags,
         ]
         debug_msg(f"Starting server with command: {' '.join(command_args)}")
