@@ -14,6 +14,7 @@ import httpx
 
 from mlflow_extensions.serving.engines.base import debug_msg
 from mlflow_extensions.serving.serde_v2 import MlflowPyfuncHttpxSerializer
+from mlflow_extensions.testing.helper import kill_processes_containing
 
 if typing.TYPE_CHECKING:
     from openai import OpenAI
@@ -78,10 +79,7 @@ class LocalTestServer:
         self._log_queue = FixedSizeLogQueue(max_size=10000)
 
     def start(self):
-        try:
-            subprocess.run(f"kill $(lsof -t -i:{self._test_serving_port})", shell=True)
-        except Exception as e:
-            debug_msg(f"Failed to kill port: {e}")
+        kill_processes_containing("mlflow models serve")
         command_args = [
             "mlflow",
             "models",
