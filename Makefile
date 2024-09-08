@@ -69,11 +69,11 @@ distclean: clean
 test:
 ifeq ($(INTEGRATION), true)
 	@echo "Running integration tests..."
-	@$(PYTEST) -m integration $(TEST_DIR)
+	@$(PYTEST) -s -m integration $(TEST_DIR)
 	@echo "Finished running integration tests."
 else
 	@echo "Running unit tests..."
-	@$(PYTEST) -m "not integration" $(TEST_DIR)
+	@$(PYTEST) -s -m "not integration" $(TEST_DIR)
 	@echo "Finished unit unit tests."
 endif
 
