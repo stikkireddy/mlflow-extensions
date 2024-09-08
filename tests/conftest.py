@@ -18,6 +18,10 @@ sys.path.insert(0, str(src_dir.resolve()))
 env_path: str = find_dotenv()
 load_dotenv(env_path)
 
+# Alias HF_TOKEN to HUGGINGFACEHUB_API_TOKEN
+os.environ["HUGGINGFACEHUB_API_TOKEN"] = (
+  os.environ.get("HUGINGFACEHUN_API", os.environ.get("HF_TOKEN"))
+)
 
 def warn_if_missing(*env_vars: str) -> None:
     has_missing: bool = False
