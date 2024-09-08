@@ -40,9 +40,9 @@ class LocalTestServer:
         test_serving_port: int = 5000,
         registry_is_uc: bool = False,
         additional_serving_flags: Optional[List[str]] = None,
-        env_from_scratch: bool = True,
+        use_local_env: bool = True,
     ):
-        self._env_from_scratch = env_from_scratch
+        self._use_local_env = use_local_env
         self._model_uri = model_uri
         self._databricks_registry_host = registry_host
         self._databricks_registry_token = registry_token
@@ -50,6 +50,12 @@ class LocalTestServer:
         self._test_serving_port = test_serving_port
         self._registry_is_uc = registry_is_uc
         self._additional_serving_flags = additional_serving_flags or []
+        if (
+            self._use_local_env is False
+            and "--env-manager" not in self._additional_serving_flags
+        ):
+            self._additional_serving_flags.append("--env-manager")
+            self._additional_serving_flags.append("local")
 
         self._server_process = None
         self._http_client = httpx.Client(
@@ -72,6 +78,7 @@ class LocalTestServer:
             str(self._test_serving_port),
             *self._additional_serving_flags,
         ]
+        debug_msg(f"Starting server with command: {' '.join(command_args)}")
         # spawn in new process group
         current_env = os.environ.copy()
         current_env["DATABRICKS_HOST"] = self._databricks_registry_host
