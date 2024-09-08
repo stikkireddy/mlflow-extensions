@@ -128,7 +128,7 @@ class SglangEngineConfig(EngineConfig):
     def engine_pip_reqs(
         self,
         *,
-        sglang_version: str = "0.2.13",
+        sglang_version: str = "0.3.0",
         flashinfer_extra_index_url: str = "https://flashinfer.ai/whl/cu121/torch2.4/",
         flashinfer_version: str = "0.1.6",
     ) -> List[str]:
