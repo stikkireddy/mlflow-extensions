@@ -151,30 +151,31 @@ class LocalTestServer:
     def wait_and_assert_healthy(self):
         assert self._server_process is not None, "Server process has not been started."
         while True:
-            try:
-                # try to update the returncode incase server crashes
-                self._server_process.communicate(timeout=5)
-            except subprocess.TimeoutExpired:
-                pass
-
             self._flush_current_logs()
 
             if self._server_process.returncode is not None:
                 stdout, stderr = self._server_process.communicate(timeout=10)
-                print("STDOUT:", stdout.decode())
-                print("STDERR:", stderr.decode())
-                print("Exit Code:", self._server_process.returncode)
+                debug_msg(f"STDOUT: {stdout.decode()}")
+                debug_msg(f"STDERR: {stderr.decode()}")
+                debug_msg(f"Exit Code: {self._server_process.returncode}")
                 raise ValueError("Server process has terminated unexpectedly.")
 
             try:
                 resp = self._http_client.get("/health")
                 if resp.status_code == 200:
-                    print("Success")
+                    debug_msg("Success")
                     break
             except Exception as e:
-                print(
+                debug_msg(
                     f"[HEALTH_CHECK] endpoint not yet available; health check error {str(e)}"
                 )
+
+            try:
+                # try to update the returncode incase server crashes
+                self._server_process.communicate(timeout=5)
+            except subprocess.TimeoutExpired:
+                debug_msg("Server process is still running but not yet healthy...")
+
             assert (
                 self._server_process.returncode is None
             ), "Server process has terminated unexpectedly."
