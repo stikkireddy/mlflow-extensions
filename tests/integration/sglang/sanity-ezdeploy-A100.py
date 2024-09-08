@@ -44,6 +44,7 @@ os.environ["HF_TOKEN"] = dbutils.secrets.get(
     scope="sri-mlflow-extensions", key="hf-token"
 )
 
+
 # COMMAND ----------
 
 results = run_all_tests(gpu_config=THIS_GPU, server_framework=THIS_FRAMEWORK)
@@ -91,3 +92,4 @@ else:
 assert len(errored_results) == 0, "Tests failed"
 
 # COMMAND ----------
+

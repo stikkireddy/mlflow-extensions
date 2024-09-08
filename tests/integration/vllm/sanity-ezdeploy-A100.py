@@ -17,11 +17,13 @@
 # COMMAND ----------
 
 from mlflow_extensions.databricks.deploy.gpu_configs import AzureServingGPUConfig
+
 from mlflow_extensions.testing.runner import (
     RequestResult,
     ServerFramework,
     run_all_tests,
 )
+
 
 THIS_GPU = AzureServingGPUConfig.GPU_LARGE.value
 THIS_FRAMEWORK = ServerFramework.VLLM
@@ -30,9 +32,11 @@ THIS_FRAMEWORK = ServerFramework.VLLM
 
 import os
 
+
 os.environ["HF_TOKEN"] = dbutils.secrets.get(
     scope="sri-mlflow-extensions", key="hf-token"
 )
+
 
 # COMMAND ----------
 

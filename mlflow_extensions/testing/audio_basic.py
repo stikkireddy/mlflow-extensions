@@ -1,14 +1,15 @@
 import base64
-import typing
 
 import requests
 
-from mlflow_extensions.testing.helper import Modality, inject_openai_client, run_if
+from mlflow_extensions.testing.helper import run_if, inject_openai_client, Modality
+import typing
 
 if typing.TYPE_CHECKING is True:
     from openai import OpenAi
-
-    from mlflow_extensions.testing.runner import ModelContextRunner
+    from mlflow_extensions.testing.runner import (
+        ModelContextRunner,
+    )
 
 
 def encode_audio_base64_from_url(audio_url: str) -> str:
@@ -62,9 +63,8 @@ def query_audio(
             )
             ctx.add_success(result=response.choices[0].message.content)
 
-            from typing import List, Literal
-
             from pydantic import BaseModel
+            from typing import Literal, List
 
             class AudioExtraction(BaseModel):
                 year: str

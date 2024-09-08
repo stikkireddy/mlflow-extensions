@@ -1,15 +1,18 @@
 import subprocess
 import time
-from dataclasses import asdict, dataclass
-from typing import List, Optional, Tuple
+
+from dataclasses import dataclass, asdict
+from typing import Tuple, Optional, List
 
 from mlflow_extensions.databricks.deploy.ez_deploy import EzDeployConfig
-from mlflow_extensions.databricks.deploy.gpu_configs import GPUConfig
+from mlflow_extensions.databricks.deploy.gpu_configs import (
+    GPUConfig,
+)
 from mlflow_extensions.databricks.prebuilt import prebuilt
 from mlflow_extensions.serving.engines.base import EngineProcess
 from mlflow_extensions.testing.audio_basic import (
-    encode_audio_base64_from_url,
     query_audio,
+    encode_audio_base64_from_url,
 )
 from mlflow_extensions.testing.helper import ServerFramework, kill_processes_containing
 from mlflow_extensions.testing.text_basic import query_text
@@ -168,9 +171,9 @@ def run_all_tests(
                             )
 
                         results.extend(ctx.results)
-                        print(
-                            "WAITING FOR SERVER TO CLEANLY CLOSE BEFORE STARTING NEW SERVER"
-                        )
+
+                        print("WAITING FOR SERVER TO CLEANLY CLOSE BEFORE STARTING NEW SERVER")
+
                         time.sleep(5)
 
     return results
