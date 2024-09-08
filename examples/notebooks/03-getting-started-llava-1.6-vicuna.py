@@ -10,22 +10,17 @@ from mlflow_extensions.databricks.deploy.ez_deploy import EzDeploy
 from mlflow_extensions.databricks.prebuilt import prebuilt
 
 deployer = EzDeploy(
-  config=prebuilt.vision.sglang.LLAVA_1_6_VICUNA,
-  registered_model_name="main.default.llava_1_6_vicuna_7b"
+  config=prebuilt.vision.sglang.LLAVA_NEXT_LLAMA3_8B_CONFIG,
+  registered_model_name="main.default.llava_next_llama3_8b_based"
 )
 
 deployer.download()
 
 deployer.register()
 
-endpoint_name = "llava_1_6_vicuna_sglang"
+endpoint_name = "llava_next_llama3_8b_sglang"
 
 deployer.deploy(endpoint_name)
-
-
-# COMMAND ----------
-
-endpoint_name = "llava_next_8b_vllm"
 
 # COMMAND ----------
 
@@ -33,7 +28,7 @@ from mlflow_extensions.serving.compat.openai import OpenAI
 from mlflow.utils.databricks_utils import get_databricks_host_creds
 
 workspace_host = spark.conf.get("spark.databricks.workspaceUrl")
-endpoint_name = "llava_1_6_vicuna_sglang"
+endpoint_name = "llava_next_llama3_8b_sglang"
 endpoint_url = f"https://{workspace_host}/serving-endpoints/{endpoint_name}/invocations"
 
 token = get_databricks_host_creds().token
