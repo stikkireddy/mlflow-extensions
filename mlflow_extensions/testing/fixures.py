@@ -59,7 +59,9 @@ class LocalTestServer:
         registry_is_uc: bool = False,
         additional_serving_flags: Optional[List[str]] = None,
         use_local_env: bool = False,
+        wait_server_start_interval_seconds: int = 5,
     ):
+        self._wait_server_start_interval_seconds = wait_server_start_interval_seconds
         self._use_local_env = use_local_env
         self._model_uri = model_uri
         self._databricks_registry_host = registry_host
@@ -122,7 +124,7 @@ class LocalTestServer:
             f"Started server on {self._test_serving_host}:{self._test_serving_port} for model {self._model_uri}"
         )
         debug_msg("Waiting for server to be healthy...")
-        self.wait_and_assert_healthy()
+        self.wait_and_assert_healthy(self._wait_server_start_interval_seconds)
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -151,7 +153,7 @@ class LocalTestServer:
             except queue.Empty:
                 break
 
-    def wait_and_assert_healthy(self):
+    def wait_and_assert_healthy(self, wait_interval_seconds: int = 5):
         assert self._server_process is not None, "Server process has not been started."
         while True:
             self._flush_current_logs()
@@ -172,6 +174,8 @@ class LocalTestServer:
                 debug_msg(
                     f"[HEALTH_CHECK] endpoint not yet available; health check error {str(e)}"
                 )
+
+            time.sleep(wait_interval_seconds)
 
             # assert (
             #     self._server_process is not None and self._server_process.pid is not None
