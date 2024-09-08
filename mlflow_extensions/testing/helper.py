@@ -4,6 +4,8 @@ import functools
 import inspect
 from enum import Enum
 
+from mlflow_extensions.serving.engines.base import debug_msg
+
 
 class Modality(Enum):
     VISION = "vision"
@@ -67,6 +69,7 @@ def get_process_ids(search_string):
         for line in result.stdout.splitlines():
             if search_string in line:
                 # Extract PID (assumed to be in the second column)
+                debug_msg(f"Found orphaned process: {line} matching {search_string}")
                 parts = line.split()
                 if len(parts) > 1 and parts[1].isdigit():
                     pids.append(parts[1])
