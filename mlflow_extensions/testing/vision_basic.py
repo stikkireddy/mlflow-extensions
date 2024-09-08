@@ -78,3 +78,53 @@ def query_vision(
             ctx.add_error(error_msg=str(e))
         finally:
             count += 1
+
+
+@run_if(modality=Modality.VISION.value)
+@inject_openai_client
+def query_vision_multi_input(
+    *,
+    ctx: "ModelContextRunner",
+    client: "OpenAi",
+    model: str,
+    modality_type: str = None,
+    host: str = "0.0.0.0",  # noqa
+    port: int = 9989,  # noqa
+    repeat_n: int = 5,
+):
+    count = 0
+    # repeat a few times
+    while count < repeat_n:
+        try:
+            response = client.chat.completions.create(
+                model=model,
+                messages=[
+                    {
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "text",
+                                "text": "Compare the differences between the images?",
+                            },
+                            {
+                                "type": "image_url",
+                                "image_url": {
+                                    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Gfp-wisconsin-madison-the-nature-boardwalk.jpg/2560px-Gfp-wisconsin-madison-the-nature-boardwalk.jpg"
+                                },
+                            },
+                            {
+                                "type": "image_url",
+                                "image_url": {
+                                    "url": "https://mir-s3-cdn-cf.behance.net/project_modules/max_1200/73fbe271026179.5bb6e7af358b6.jpg"
+                                },
+                            },
+                        ],
+                    }
+                ],
+            )
+            ctx.add_success(result=response.choices[0].message.content.strip())
+        except Exception as e:
+            print(e)
+            ctx.add_error(error_msg=str(e))
+        finally:
+            count += 1
