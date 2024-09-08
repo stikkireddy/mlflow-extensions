@@ -14,7 +14,10 @@ import httpx
 
 from mlflow_extensions.serving.engines.base import debug_msg
 from mlflow_extensions.serving.serde_v2 import MlflowPyfuncHttpxSerializer
-from mlflow_extensions.testing.helper import kill_processes_containing
+from mlflow_extensions.testing.helper import (
+    kill_processes_containing,
+    is_process_active,
+)
 
 if typing.TYPE_CHECKING:
     from openai import OpenAI
@@ -72,7 +75,7 @@ class LocalTestServer:
             self._additional_serving_flags.append("--env-manager")
             self._additional_serving_flags.append("local")
 
-        self._server_process = None
+        self._server_process: Optional[subprocess.Popen] = None
         self._http_client = httpx.Client(
             base_url=f"http://{self._test_serving_host}:{self._test_serving_port}"
         )
@@ -153,7 +156,7 @@ class LocalTestServer:
         while True:
             self._flush_current_logs()
 
-            if self._server_process.returncode is not None:
+            if is_process_active(self._server_process.pid) is False:
                 stdout, stderr = self._server_process.communicate(timeout=10)
                 debug_msg(f"STDOUT: {stdout.decode()}")
                 debug_msg(f"STDERR: {stderr.decode()}")
@@ -170,15 +173,10 @@ class LocalTestServer:
                     f"[HEALTH_CHECK] endpoint not yet available; health check error {str(e)}"
                 )
 
-            try:
-                # try to update the returncode incase server crashes
-                self._server_process.communicate(timeout=5)
-            except subprocess.TimeoutExpired:
-                debug_msg("Server process is still running but not yet healthy...")
-
-            assert (
-                self._server_process.returncode is None
-            ), "Server process has terminated unexpectedly."
+            # assert (
+            #     self._server_process is not None and self._server_process.pid is not None
+            #     and is_process_active(self._server_process.pid) is True
+            # ), "Server process has terminated unexpectedly."
 
     def query(self, *, payload: Dict[str, Any], timeout: int = 30):
         return self._http_client.post("/invocations", json=payload, timeout=timeout)

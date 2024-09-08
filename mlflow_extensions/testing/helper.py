@@ -4,6 +4,8 @@ import os
 import subprocess
 from enum import Enum
 
+import psutil
+
 from mlflow_extensions.serving.engines.base import debug_msg
 
 
@@ -93,3 +95,21 @@ def kill_processes_containing(search_string):
     pids = get_process_ids(search_string)
     for pid in pids:
         kill_process(pid)
+
+
+def is_process_active(pid: int) -> bool:
+    try:
+        process = psutil.Process(pid)
+        status = process.status()
+        if status == psutil.STATUS_ZOMBIE:
+            print(f"Process {pid} is a zombie.")
+            return False
+        else:
+            print(f"Process {pid} is running with status: {status}.")
+            return True
+    except psutil.NoSuchProcess:
+        print(f"Process {pid} does not exist (killed or never existed).")
+        return False
+    except psutil.AccessDenied:
+        print(f"Access denied to process {pid}.")
+        return False
