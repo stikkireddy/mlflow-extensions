@@ -10,7 +10,7 @@ def test_should_return_correct_version() -> None:
     version: str = get_mlflow_extensions_version()
     assert version is not None
 
-    regex: str = r"^(\d+\.\d+)(\.dev\d+)?\+g([0-9a-f]+)\.d(\d{8})$"
+    regex: str = r"^(\d+\.\d+)(\.dev\d+)?\+\w+([0-9a-f]+)\.d(\d{8})$"
 
     match: re.Match = re.match(regex, version)
     assert version is not None and match is not None
