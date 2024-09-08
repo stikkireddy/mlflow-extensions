@@ -2,7 +2,9 @@ import json
 import os
 import queue
 import signal
+import site
 import subprocess
+import sys
 import time
 import typing
 from threading import Thread
@@ -26,6 +28,18 @@ class FixedSizeLogQueue(queue.Queue):
         if self.full():
             self.get_nowait()
         super().put(item, block, timeout)
+
+
+def ensure_proper_site_packages_for_local(env: dict):
+    python_exec_path = sys.executable
+    bin_dir = os.path.dirname(python_exec_path)
+    site_packages_path = site.getsitepackages()[0]
+    debug_msg(f"Setting PYTHONPATH to include {site_packages_path}")
+    debug_msg(f"Setting PATH to include {bin_dir}")
+    if env.get("PYTHONPATH", "").startswith(site_packages_path) is False:
+        env["PYTHONPATH"] = f"{site_packages_path}:{env.get('PYTHONPATH', '')}"
+    if env.get("PATH", "").startswith(bin_dir) is False:
+        env["PATH"] = f"{bin_dir}:{env.get('PATH', '')}"
 
 
 class LocalTestServer:
@@ -81,6 +95,8 @@ class LocalTestServer:
         debug_msg(f"Starting server with command: {' '.join(command_args)}")
         # spawn in new process group
         current_env = os.environ.copy()
+        if self._use_local_env is True:
+            ensure_proper_site_packages_for_local(current_env)
         current_env["DATABRICKS_HOST"] = self._databricks_registry_host
         current_env["DATABRICKS_TOKEN"] = self._databricks_registry_token
         self._server_process = subprocess.Popen(
