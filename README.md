@@ -120,23 +120,24 @@ The local test server will spawn a local server that will serve the model and ca
 It will spawn the server in its own process group id and if you need to control the port, test_serving_port can be passed.
 
 ```python
-from mlflow_extensions.serving.fixures import LocalTestServer
+from mlflow_extensions.testing.fixures import LocalTestServer
 from mlflow.utils.databricks_utils import get_databricks_host_creds
 
+run_uri = "runs:/<run-id>/model"
 
-local_server = LocalTestServer(
-  model_uri="<uri to the model or run>",
-  registry_host=get_databricks_host_creds().host,
-  registry_token=get_databricks_host_creds().token
-)
+server_configs = {
+  "model_uri": run_uri,
+  "registry_host": get_databricks_host_creds().host,
+  "registry_token": get_databricks_host_creds().token,
+  "use_local_env": True
+}
 
-local_server.start()
-
-local_server.wait_and_assert_healthy()
-
-# assert local_server.query(payload={"inputs": [....]}) == ...
-
-local_server.stop()
+with LocalTestServer(**server_configs) as server:
+    resp = server.query(payload={
+      "inputs": ...
+    }).json()
+    print(resp)
+    assert resp == ..., ...
 ```
 
 ### Deploying Models using Ollama 
