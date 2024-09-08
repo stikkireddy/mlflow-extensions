@@ -1,7 +1,7 @@
-import subprocess
-import os
 import functools
 import inspect
+import os
+import subprocess
 from enum import Enum
 
 
@@ -58,8 +58,10 @@ class ServerFramework(Enum):
 def get_process_ids(search_string):
     try:
         # Run 'ps aux' to get the process list
-        result = subprocess.run(['ps', 'aux'], text=True, capture_output=True, check=True)
-        
+        result = subprocess.run(
+            ["ps", "aux"], text=True, capture_output=True, check=True
+        )
+
         # Process the output
         pids = []
         for line in result.stdout.splitlines():
@@ -68,16 +70,17 @@ def get_process_ids(search_string):
                 parts = line.split()
                 if len(parts) > 1 and parts[1].isdigit():
                     pids.append(parts[1])
-        
+
         return pids
 
     except subprocess.CalledProcessError as e:
         print(f"An error occurred: {e}")
         return []
 
+
 def kill_process(pid):
     try:
-        subprocess.run(['kill', "-9", pid], check=True)
+        subprocess.run(["kill", "-9", pid], check=True)
         print(f"Killed process with PID {pid}")
     except subprocess.CalledProcessError as e:
         print(f"Failed to kill process with PID {pid}: {e}")

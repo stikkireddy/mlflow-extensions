@@ -69,13 +69,22 @@ distclean: clean
 test:
 ifeq ($(INTEGRATION), true)
 	@echo "Running integration tests..."
-#	@$(PYTEST) -m integration --cov-report term-missing --cov-report html:$(REPORT_DIR)  --cov=$(SRC_DIR) $(TEST_DIR)
 	@$(PYTEST) -m integration $(TEST_DIR)
 	@echo "Finished running integration tests."
 else
 	@echo "Running unit tests..."
-#	@$(PYTEST) -m "not integration" --cov-report term-missing --cov-report html:$(REPORT_DIR)  --cov=$(SRC_DIR) $(TEST_DIR)
 	@$(PYTEST) -m "not integration" $(TEST_DIR)
+	@echo "Finished unit unit tests."
+endif
+
+coverage:
+ifeq ($(INTEGRATION), true)
+	@echo "Running integration tests..."
+	@$(PYTEST) -m integration --cov-report term --cov-report html:$(REPORT_DIR) --cov=$(SRC_DIR) $(TEST_DIR)
+	@echo "Finished running integration tests."
+else
+	@echo "Running unit tests..."
+	@$(PYTEST) -m "not integration" --cov-report term --cov-report html:$(REPORT_DIR) --cov=$(SRC_DIR) $(TEST_DIR)
 	@echo "Finished unit unit tests."
 endif
 	
@@ -97,6 +106,7 @@ help:
 	$(info       fmt          - format source code)
 	$(info       check        - format source code)
 	$(info       test         - run unit tests. Set INTEGRATION=true to run integration tests. Default is false)
+	$(info       coverage     - generate test coverage report. Set INTEGRATION=true to run integration tests. Default is false)
 	$(info       upload       - publish wheel to pypi/artifactory server)
 	$(info )
 	$(info  Example: $$> make test INTEGRATION=true)
@@ -104,4 +114,4 @@ help:
 	
 	@true
 
-.PHONY: build upload check fmt clean distclean help
+.PHONY: build upload check fmt clean distclean test coverage help

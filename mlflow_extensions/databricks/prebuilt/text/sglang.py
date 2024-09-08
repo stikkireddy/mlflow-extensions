@@ -34,4 +34,6 @@ META_LLAMA_3_1_8B_INSTRUCT_CONFIG = EzDeployConfig(
 @dataclass(frozen=True)
 class SglangText:
     GEMMA_2_9B_IT: EzDeployConfig = field(default_factory=lambda: GEMMA_2_9B_IT_CONFIG)
-    META_LLAMA_3_1_8B_INSTRUCT_CONFIG: EzDeployConfig = field(default_factory=lambda: META_LLAMA_3_1_8B_INSTRUCT_CONFIG)
+    META_LLAMA_3_1_8B_INSTRUCT_CONFIG: EzDeployConfig = field(
+        default_factory=lambda: META_LLAMA_3_1_8B_INSTRUCT_CONFIG
+    )

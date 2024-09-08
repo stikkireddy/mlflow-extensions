@@ -1,3 +1,4 @@
+import os
 from typing import List, Sequence, Tuple
 
 import pytest
@@ -44,6 +45,12 @@ ez_deploy_configs: List[EzDeployConfig] = [
 ]
 
 
+# @pytest.mark.skipif(
+#     "DATABRICKS_HOST" not in os.environ, reason="Missing environment variable: DATABRICKS_HOST"
+# )
+# @pytest.mark.skipif(
+#     "DATABRICKS_TOKEN" not in os.environ, reason="Missing environment variable: DATABRICKS_TOKEN"
+# )
 @pytest.mark.integration
 @pytest.mark.parametrize("config", ez_deploy_configs)
 def test_should_download(config: EzDeployConfig) -> None:
@@ -59,6 +66,7 @@ def test_should_download(config: EzDeployConfig) -> None:
 @pytest.mark.unit
 def test_should_deploy(deploy: EzDeploy) -> None:
     assert deploy is not None
+
 
 @pytest.mark.unit
 def test_should_register(deploy: EzDeploy) -> None:

@@ -6,3 +6,4 @@ psutil
 pytest
 pytest-cov
 pytest-xdist
+python-dotenv
