@@ -40,7 +40,7 @@ class LocalTestServer:
         test_serving_port: int = 5000,
         registry_is_uc: bool = False,
         additional_serving_flags: Optional[List[str]] = None,
-        use_local_env: bool = True,
+        use_local_env: bool = False,
     ):
         self._use_local_env = use_local_env
         self._model_uri = model_uri
