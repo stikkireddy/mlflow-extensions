@@ -61,6 +61,7 @@ def get_process_ids(search_string):
         result = subprocess.run(
             ["ps", "aux"], text=True, capture_output=True, check=True
         )
+
         # Process the output
         pids = []
         for line in result.stdout.splitlines():

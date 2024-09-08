@@ -40,7 +40,9 @@ class LocalTestServer:
         test_serving_port: int = 5000,
         registry_is_uc: bool = False,
         additional_serving_flags: Optional[List[str]] = None,
+        env_from_scratch: bool = True,
     ):
+        self._env_from_scratch = env_from_scratch
         self._model_uri = model_uri
         self._databricks_registry_host = registry_host
         self._databricks_registry_token = registry_token
@@ -89,6 +91,21 @@ class LocalTestServer:
             target=self._enqueue_output,
             args=(self._server_process.stderr, self._log_queue),
         ).start()
+
+    def __enter__(self):
+        self.start()
+        debug_msg(
+            f"Started server on {self._test_serving_host}:{self._test_serving_port} for model {self._model_uri}"
+        )
+        debug_msg("Waiting for server to be healthy...")
+        self.wait_and_assert_healthy()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if exc_type is not None:
+            debug_msg(f"Exception: {exc_type} {exc_val}")
+        self.stop()
+        debug_msg("Stopped server")
 
     def _enqueue_output(self, pipe, q: queue.Queue):
         for line in iter(pipe.readline, b""):
