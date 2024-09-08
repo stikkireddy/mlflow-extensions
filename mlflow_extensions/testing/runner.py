@@ -1,3 +1,4 @@
+import fnmatch
 import subprocess
 import time
 from dataclasses import dataclass, asdict
@@ -128,7 +129,11 @@ class ModelContextRunner:
 
 
 def run_all_tests(
-    *, gpu_config: GPUConfig, server_framework: ServerFramework
+    *,
+    gpu_config: GPUConfig,
+    server_framework: ServerFramework,
+    model_filter_fnmatch_str: str = "*",
+    ezconfig_name_filter_fnmatch_str: str = "*",
 ) -> List[RequestResult]:
     # gettysburg.wav is a 17 second audio file
     audio_data = encode_audio_base64_from_url(
@@ -139,38 +144,62 @@ def run_all_tests(
     for modality, model_arg in prebuilt.__dict__.items():
         for serving_type, serving_framework_cfg in model_arg.__dict__.items():
             for key, ezconfig in serving_framework_cfg.__dict__.items():
-                if serving_type == server_framework.value:
-                    if (
-                        ezconfig.serving_config.minimum_memory_in_gb
-                        <= gpu_config.gpu_type.memory_gb
-                    ):
-                        # kill everything before starting a new process
-                        # we want to make sure ports are available
-                        kill_processes_containing("sglang.launch_server")
-                        kill_processes_containing("vllm.entrypoints.openai.api_server")
-                        with ModelContextRunner(
-                            ez_config=ezconfig, current_gpu=gpu_config
-                        ) as ctx:
-                            query_audio(
-                                ctx=ctx,
-                                model=ezconfig.engine_config.model,
-                                modality_type=modality,
-                                audio_data=audio_data,
-                            )
-                            query_vision(
-                                ctx=ctx,
-                                model=ezconfig.engine_config.model,
-                                modality_type=modality,
-                            )
+                ezconfig: EzDeployConfig
+                if serving_type != server_framework.value:
+                    continue
+                if (
+                    ezconfig.serving_config.minimum_memory_in_gb
+                    > gpu_config.gpu_type.memory_gb
+                ):
+                    continue
+                if (
+                    fnmatch.fnmatch(
+                        ezconfig.engine_config.model, model_filter_fnmatch_str
+                    )
+                    is False
+                ):
+                    print(
+                        f"SKIPPING {ezconfig.engine_config.model} because it does not match "
+                        f"{model_filter_fnmatch_str}"
+                    )
+                    continue
+                if (
+                    fnmatch.fnmatch(ezconfig.name, ezconfig_name_filter_fnmatch_str)
+                    is False
+                ):
+                    print(
+                        f"SKIPPING {ezconfig.engine_config.model} because it does not match "
+                        f"{ezconfig_name_filter_fnmatch_str}"
+                    )
+                    continue
 
-                            query_text(
-                                ctx=ctx,
-                                model=ezconfig.engine_config.model,
-                                modality_type=modality,
-                            )
+                # kill everything before starting a new process
+                # we want to make sure ports are available
+                kill_processes_containing("sglang.launch_server")
+                kill_processes_containing("vllm.entrypoints.openai.api_server")
+                with ModelContextRunner(
+                    ez_config=ezconfig, current_gpu=gpu_config
+                ) as ctx:
+                    query_audio(
+                        ctx=ctx,
+                        model=ezconfig.engine_config.model,
+                        modality_type=modality,
+                        audio_data=audio_data,
+                    )
+                    query_vision(
+                        ctx=ctx,
+                        model=ezconfig.engine_config.model,
+                        modality_type=modality,
+                    )
 
-                        results.extend(ctx.results)
-                        print("WAITING FOR SERVER TO CLEANLY CLOSE BEFORE STARTING NEW SERVER")
-                        time.sleep(5)
+                    query_text(
+                        ctx=ctx,
+                        model=ezconfig.engine_config.model,
+                        modality_type=modality,
+                    )
+
+                results.extend(ctx.results)
+                print("WAITING FOR SERVER TO CLEANLY CLOSE BEFORE STARTING NEW SERVER")
+                time.sleep(5)
 
     return results
