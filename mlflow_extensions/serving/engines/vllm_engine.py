@@ -33,6 +33,10 @@ class VLLMEngineConfig(EngineConfig):
     guided_decoding_backend: Optional[str] = field(default="outlines")
     tokenizer: Optional[str] = field(default=None)  # --tokenizer
 
+    max_num_images: Optional[int] = field(default=None)
+    max_num_videos: Optional[int] = field(default=None)
+    max_num_audios: Optional[int] = field(default=None)
+
     # general keys
     model_artifact_key: str = field(default="model")
     verify_chat_template: bool = field(default=True)
@@ -57,6 +61,7 @@ class VLLMEngineConfig(EngineConfig):
             "--trust-remote-code",
             "--served-model-name",
             "--guided-decoding-backend",
+            "--limit-mm-per-prompt",
         ]
 
         # add tensor parallel size flag if we have GPUs
@@ -93,6 +98,20 @@ class VLLMEngineConfig(EngineConfig):
         if self.tokenizer is not None:
             flags.append("--tokenizer")
             flags.append(tokenizer_path or self.tokenizer)
+        if (
+            self.max_num_images is not None
+            or self.max_num_videos is not None
+            or self.max_num_audios is not None
+        ):
+            flags.append("--limit-mm-per-prompt")
+            values = []
+            if self.max_num_images is not None:
+                values.append(f"image={self.max_num_images}")
+            if self.max_num_videos is not None:
+                values.append(f"video={self.max_num_videos}")
+            if self.max_num_audios is not None:
+                values.append(f"audio={self.max_num_audios}")
+            flags.append(",".join(values))
 
         return [
             sys.executable,

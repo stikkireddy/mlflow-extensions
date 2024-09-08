@@ -14,7 +14,10 @@ from mlflow_extensions.testing.audio_basic import (
 )
 from mlflow_extensions.testing.helper import ServerFramework, kill_processes_containing
 from mlflow_extensions.testing.text_basic import query_text
-from mlflow_extensions.testing.vision_basic import query_vision
+from mlflow_extensions.testing.vision_basic import (
+    query_vision,
+    query_vision_multi_input,
+)
 
 
 def make_process_and_get_artifacts(
@@ -194,6 +197,12 @@ def run_all_tests(
                         model=ezconfig.engine_config.model,
                         modality_type=modality,
                     )
+                    if server_framework == ServerFramework.VLLM:
+                        query_vision_multi_input(
+                            ctx=ctx,
+                            model=ezconfig.engine_config.model,
+                            modality_type=modality,
+                        )
 
                 results.extend(ctx.results)
                 print("WAITING FOR SERVER TO CLEANLY CLOSE BEFORE STARTING NEW SERVER")
