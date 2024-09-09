@@ -1,10 +1,7 @@
 from dataclasses import dataclass, field
 
-from mlflow_extensions.databricks.deploy.ez_deploy import (
-    EzDeployConfig,
-    ServingConfig,
-)
-from mlflow_extensions.serving.engines import SglangEngineProcess, SglangEngineConfig
+from mlflow_extensions.databricks.deploy.ez_deploy import EzDeployConfig, ServingConfig
+from mlflow_extensions.serving.engines import SglangEngineConfig, SglangEngineProcess
 
 _ENGINE = SglangEngineProcess
 _ENGINE_CONFIG = SglangEngineConfig

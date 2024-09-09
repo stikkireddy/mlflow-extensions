@@ -4,7 +4,7 @@ MODULE = "langchain_openai"
 INSTALL = "langchain-openai"
 
 try:
-    from langchain_openai import OpenAI, ChatOpenAI
+    from langchain_openai import ChatOpenAI, OpenAI
 except ImportError as e:
     print(
         f"Error importing {MODULE} module please run "

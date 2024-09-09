@@ -1,22 +1,20 @@
 import json
-from dataclasses import dataclass, asdict, field
-from typing import Type, Optional, Literal, List
+from dataclasses import asdict, dataclass, field
+from typing import List, Literal, Optional, Type
 
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.errors import ResourceDoesNotExist
-from databricks.sdk.service.serving import (
-    EndpointCoreConfigInput,
-    ServedEntityInput,
-)
+from databricks.sdk.service.serving import EndpointCoreConfigInput, ServedEntityInput
 
 from mlflow_extensions.databricks.deploy.gpu_configs import (
-    GPUConfig,
-    Cloud,
     ALL_VALID_GPUS,
+    Cloud,
+    GPUConfig,
 )
 from mlflow_extensions.serving.engines.base import EngineConfig, EngineProcess
 from mlflow_extensions.serving.wrapper import (
     CustomServingEnginePyfuncWrapper,
+    DIAGNOSTICS_REQUEST_KEY,
     ENABLE_DIAGNOSTICS_FLAG,
 )
 
@@ -82,11 +80,11 @@ class EzDeploy:
             self._client = WorkspaceClient(host=databricks_host, token=databricks_token)
             self._cloud = Cloud.from_host(databricks_host)
 
-    def download(self):
+    def download(self, *, local_dir=None):
         self._model = CustomServingEnginePyfuncWrapper(
             engine=self._config.engine_proc, engine_config=self._config.engine_config
         )
-        self._model.setup()
+        self._model.setup(local_dir=local_dir)
         self._downloaded = True
 
     def register(self):

@@ -1,10 +1,7 @@
 from dataclasses import dataclass, field
 
-from mlflow_extensions.databricks.deploy.ez_deploy import (
-    EzDeployConfig,
-    ServingConfig,
-)
-from mlflow_extensions.serving.engines import VLLMEngineProcess, VLLMEngineConfig
+from mlflow_extensions.databricks.deploy.ez_deploy import EzDeployConfig, ServingConfig
+from mlflow_extensions.serving.engines import VLLMEngineConfig, VLLMEngineProcess
 
 _ENGINE = VLLMEngineProcess
 _ENGINE_CONFIG = VLLMEngineConfig

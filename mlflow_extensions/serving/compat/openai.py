@@ -4,7 +4,7 @@ MODULE = "openai"
 INSTALL = "openai"
 
 try:
-    from openai import OpenAI, AsyncOpenAI
+    from openai import AsyncOpenAI, OpenAI
 except ImportError as e:
     print(
         f"Error importing {MODULE} module please run "

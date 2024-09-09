@@ -2,18 +2,18 @@ import json
 import os
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Type, Optional, Iterator
+from typing import Iterator, List, Optional, Type
 
 import mlflow
 import pandas as pd
-from httpx import Response, Request
+from httpx import Request, Response
 from mlflow.pyfunc import PythonModelContext
 
 from mlflow_extensions.serving.compute_details import get_compute_details
 from mlflow_extensions.serving.engines.base import (
+    EngineConfig,
     EngineProcess,
     debug_msg,
-    EngineConfig,
 )
 from mlflow_extensions.serving.serde import ResponseMessageV1
 from mlflow_extensions.serving.serde_v2 import MlflowPyfuncHttpxSerializer

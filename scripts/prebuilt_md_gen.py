@@ -1,9 +1,9 @@
+import pandas as pd
+
 from mlflow_extensions.databricks.deploy.ez_deploy import EzDeployConfig
 from mlflow_extensions.databricks.deploy.gpu_configs import Cloud
 from mlflow_extensions.databricks.prebuilt import prebuilt
 from mlflow_extensions.serving.engines import VLLMEngineConfig
-
-import pandas as pd
 
 try:
     import tabulate

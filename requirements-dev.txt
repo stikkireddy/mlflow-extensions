@@ -1,0 +1,10 @@
+numpy
+scipy
+pandas
+databricks-sdk
+psutil
+pytest
+pytest-cov
+pytest-xdist
+python-dotenv
+setuptools

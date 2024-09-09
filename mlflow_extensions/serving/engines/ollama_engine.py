@@ -3,13 +3,13 @@ import shutil
 import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import List, Dict, Union, Optional
+from typing import Dict, List, Optional, Union
 
 from mlflow.pyfunc import PythonModelContext
 
 from mlflow_extensions.serving.engines.base import (
-    EngineConfig,
     Command,
+    EngineConfig,
     EngineProcess,
     debug_msg,
 )
