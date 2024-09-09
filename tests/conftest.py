@@ -5,7 +5,9 @@ from pathlib import Path
 from textwrap import dedent
 
 import pytest
+from databricks.sdk import WorkspaceClient
 from dotenv import find_dotenv, load_dotenv
+from mlflow import MlflowClient
 
 os.environ["PYSPARK_PYTHON"] = sys.executable
 os.environ["PYSPARK_DRIVER_PYTHON"] = sys.executable
@@ -17,6 +19,19 @@ sys.path.insert(0, str(src_dir.resolve()))
 
 env_path: str = find_dotenv()
 load_dotenv(env_path)
+
+
+@pytest.fixture
+def mlflow_client() -> MlflowClient:
+    return MlflowClient()
+
+
+@pytest.fixture
+def workspace_client() -> WorkspaceClient:
+    return WorkspaceClient(
+        host=os.environ["DATABRICKS_HOST"], token=os.environ["DATABRICKS_TOKEN"]
+    )
+
 
 # Alias HF_TOKEN to HUGGINGFACEHUB_API_TOKEN
 if any([e in os.environ for e in ["HUGGINGFACEHUB_API_TOKEN", "HF_TOKEN"]]):

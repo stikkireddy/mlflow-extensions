@@ -1,5 +1,6 @@
 pyspark[connect]
 numpy
+scipy
 pandas
 databricks-sdk
 psutil

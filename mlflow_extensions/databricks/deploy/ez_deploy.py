@@ -79,11 +79,11 @@ class EzDeploy:
             self._client = WorkspaceClient(host=databricks_host, token=databricks_token)
             self._cloud = Cloud.from_host(databricks_host)
 
-    def download(self):
+    def download(self, *, local_dir=None):
         self._model = CustomServingEnginePyfuncWrapper(
             engine=self._config.engine_proc, engine_config=self._config.engine_config
         )
-        self._model.setup()
+        self._model.setup(local_dir=local_dir)
         self._downloaded = True
 
     def register(self):
