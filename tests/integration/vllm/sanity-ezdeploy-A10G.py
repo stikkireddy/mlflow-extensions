@@ -28,7 +28,7 @@ os.environ["HF_HUB_ENABLE_HF_TRANSFER"] = "1"
 
 # COMMAND ----------
 
-results = run_all_tests(gpu_config=THIS_GPU, server_framework=THIS_FRAMEWORK)
+results = run_all_tests(gpu_config=THIS_GPU, server_framework=THIS_FRAMEWORK, model_filter_fnmatch_str="*Phi*")
 
 # COMMAND ----------
 

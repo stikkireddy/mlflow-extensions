@@ -39,7 +39,7 @@ def phi_3_5_vision_instruct(
 
 # https://huggingface.co/microsoft/Phi-3.5-vision-instruct
 PHI_3_5_VISION_INSTRUCT_4K_CONFIG = phi_3_5_vision_instruct(
-    "4k", 4096, 12, max_num_images=2
+    "4k", 4096, 12, max_num_images=1
 )
 
 # https://huggingface.co/microsoft/Phi-3.5-vision-instruct
