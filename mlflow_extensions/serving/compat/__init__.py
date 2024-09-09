@@ -4,7 +4,7 @@ from typing import Optional
 from urllib.parse import urlparse
 
 import httpx
-from httpx import Client, Request, Response, AsyncClient, URL
+from httpx import URL, AsyncClient, Client, Request, Response
 
 from mlflow_extensions.serving.serde_v2 import MlflowPyfuncHttpxSerializer
 

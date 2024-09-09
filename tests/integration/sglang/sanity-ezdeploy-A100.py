@@ -26,7 +26,12 @@
 # COMMAND ----------
 
 from mlflow_extensions.databricks.deploy.gpu_configs import AzureServingGPUConfig
-from mlflow_extensions.testing.runner import ServerFramework, run_all_tests, RequestResult
+from mlflow_extensions.testing.runner import (
+    RequestResult,
+    ServerFramework,
+    run_all_tests,
+)
+
 THIS_GPU = AzureServingGPUConfig.GPU_LARGE.value
 THIS_FRAMEWORK = ServerFramework.SGLANG
 THIS_GPU, THIS_FRAMEWORK
@@ -34,6 +39,7 @@ THIS_GPU, THIS_FRAMEWORK
 # COMMAND ----------
 
 import os
+
 os.environ["HF_TOKEN"] = dbutils.secrets.get(scope="sri-mlflow-extensions", key="hf-token")
 os.environ["HF_HUB_ENABLE_HF_TRANSFER"] = "1"
 
@@ -44,6 +50,7 @@ results = run_all_tests(gpu_config=THIS_GPU, server_framework=THIS_FRAMEWORK)
 # COMMAND ----------
 
 import pandas as pd
+
 display(pd.DataFrame(RequestResult.make_df_friendly(results)))
 
 # COMMAND ----------
@@ -54,6 +61,7 @@ display(pd.DataFrame(RequestResult.make_df_friendly(results)))
 # COMMAND ----------
 
 import pandas as pd
+
 # errored records
 errored_results = [result for result in results if result.is_error is True]
 if len(errored_results) > 0:
@@ -69,6 +77,7 @@ else:
 # COMMAND ----------
 
 import pandas as pd
+
 # errored records
 success_results = [result for result in results if result.is_error is False]
 if len(success_results) > 0:
@@ -81,5 +90,3 @@ else:
 assert len(errored_results) == 0, "Tests failed"
 
 # COMMAND ----------
-
-
