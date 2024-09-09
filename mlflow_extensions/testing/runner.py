@@ -36,6 +36,7 @@ def make_process_and_get_artifacts(
 @dataclass
 class RequestResult:
     model: str
+    config_name: str
     framework: str
     gpu: str
     output: str
@@ -89,6 +90,7 @@ class ModelContextRunner:
         self.results.append(
             RequestResult(
                 model=self.ez_config.engine_config.model,
+                config_name=self.ez_config.name,
                 gpu=f"{self.current_gpu.name}x{self.current_gpu.gpu_count}",
                 output="",
                 error_msg=error_msg,
@@ -104,6 +106,7 @@ class ModelContextRunner:
         self.results.append(
             RequestResult(
                 model=self.ez_config.engine_config.model,
+                config_name=self.ez_config.name,
                 gpu=f"{self.current_gpu.name}x{self.current_gpu.gpu_count}",
                 error_msg="",
                 output=result,
