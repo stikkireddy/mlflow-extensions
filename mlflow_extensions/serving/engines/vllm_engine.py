@@ -14,6 +14,7 @@ from mlflow_extensions.serving.engines.base import (
 )
 from mlflow_extensions.serving.engines.huggingface_utils import (
     snapshot_download_local,
+    get_local_snapshot,
     ensure_chat_template,
 )
 
@@ -148,6 +149,11 @@ class VLLMEngineConfig(EngineConfig):
         return default_installs
 
     def _setup_snapshot(self, local_dir: str = "/root/models"):
+        if local_hf_model_path := get_local_snapshot(
+            self.model, self.cache_dir, local_dir
+        ):
+            return local_hf_model_path
+
         return snapshot_download_local(repo_id=self.model, local_dir=local_dir)
 
     def _setup_artifacts(self, local_dir: str = "/root/models"):
@@ -234,7 +240,6 @@ class VLLMEngineConfig(EngineConfig):
 
 
 class VLLMEngineProcess(EngineProcess):
-
     @property
     def engine_name(self) -> str:
         return "vllm-engine"
