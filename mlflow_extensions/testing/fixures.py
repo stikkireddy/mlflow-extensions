@@ -15,8 +15,8 @@ import httpx
 from mlflow_extensions.serving.engines.base import debug_msg
 from mlflow_extensions.serving.serde_v2 import MlflowPyfuncHttpxSerializer
 from mlflow_extensions.testing.helper import (
-    kill_processes_containing,
     is_process_active,
+    kill_processes_containing,
 )
 
 if typing.TYPE_CHECKING:

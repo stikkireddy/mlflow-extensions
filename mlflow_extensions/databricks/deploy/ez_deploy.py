@@ -13,9 +13,8 @@ from mlflow_extensions.databricks.deploy.gpu_configs import (
 )
 from mlflow_extensions.serving.engines.base import EngineConfig, EngineProcess
 from mlflow_extensions.serving.wrapper import (
-    CustomServingEnginePyfuncWrapper,
-    DIAGNOSTICS_REQUEST_KEY,
     ENABLE_DIAGNOSTICS_FLAG,
+    CustomServingEnginePyfuncWrapper,
 )
 
 
