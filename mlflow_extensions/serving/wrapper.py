@@ -87,7 +87,7 @@ class CustomServingEnginePyfuncWrapper(mlflow.pyfunc.PythonModel):
             req: str
             if (
                 req.startswith(DIAGNOSTICS_REQUEST_KEY)
-                and os.environ.get(ENABLE_DIAGNOSTICS_FLAG, False) is True
+                and os.environ.get(ENABLE_DIAGNOSTICS_FLAG, "false") == "true"
             ):
                 parts = req.split(":")
                 if len(parts) > 1:
@@ -102,7 +102,7 @@ class CustomServingEnginePyfuncWrapper(mlflow.pyfunc.PythonModel):
                 responses.append(json.dumps(compute_details))
             elif (
                 req.startswith(DIAGNOSTICS_REQUEST_KEY)
-                and os.environ.get(ENABLE_DIAGNOSTICS_FLAG, False) is False
+                and os.environ.get(ENABLE_DIAGNOSTICS_FLAG, "false") == "false"
             ):
                 responses.append(
                     f"Diagnostics are disabled please set environment variable on your deployment "

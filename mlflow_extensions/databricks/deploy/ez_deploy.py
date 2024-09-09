@@ -17,7 +17,7 @@ from mlflow_extensions.databricks.deploy.gpu_configs import (
 from mlflow_extensions.serving.engines.base import EngineConfig, EngineProcess
 from mlflow_extensions.serving.wrapper import (
     CustomServingEnginePyfuncWrapper,
-    DIAGNOSTICS_REQUEST_KEY,
+    ENABLE_DIAGNOSTICS_FLAG,
 )
 
 
@@ -161,7 +161,7 @@ class EzDeploy:
             )
         environment_vars = {}
         if enable_diagnostics is True:
-            environment_vars[DIAGNOSTICS_REQUEST_KEY] = "true"
+            environment_vars[ENABLE_DIAGNOSTICS_FLAG] = "true"
         if endpoint_exists is False:
             self._client.serving_endpoints.create(
                 name=name,
