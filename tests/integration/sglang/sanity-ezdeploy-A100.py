@@ -5,7 +5,7 @@
 
 # COMMAND ----------
 
-# MAGIC %pip install sglang[all]==0.3.0 outlines==0.0.44 httpx filelock
+# MAGIC %pip install sglang[all]==0.3.0 outlines==0.0.44 httpx filelock hf_transfer
 # MAGIC %pip install -U flashinfer==0.1.6 --extra-index-url https://flashinfer.ai/whl/cu121/torch2.4/
 # MAGIC %pip install -U openai
 # MAGIC %pip install -U mlflow
@@ -40,10 +40,8 @@ THIS_GPU, THIS_FRAMEWORK
 
 import os
 
-os.environ["HF_TOKEN"] = dbutils.secrets.get(
-    scope="sri-mlflow-extensions", key="hf-token"
-)
-
+os.environ["HF_TOKEN"] = dbutils.secrets.get(scope="sri-mlflow-extensions", key="hf-token")
+os.environ["HF_HUB_ENABLE_HF_TRANSFER"] = "1"
 
 # COMMAND ----------
 
