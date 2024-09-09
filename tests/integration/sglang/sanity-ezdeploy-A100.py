@@ -40,7 +40,9 @@ THIS_GPU, THIS_FRAMEWORK
 
 import os
 
-os.environ["HF_TOKEN"] = dbutils.secrets.get(scope="sri-mlflow-extensions", key="hf-token")
+os.environ["HF_TOKEN"] = dbutils.secrets.get(
+    scope="sri-mlflow-extensions", key="hf-token"
+)
 os.environ["HF_HUB_ENABLE_HF_TRANSFER"] = "1"
 
 # COMMAND ----------

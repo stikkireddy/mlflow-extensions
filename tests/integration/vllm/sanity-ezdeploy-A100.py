@@ -30,7 +30,9 @@ THIS_FRAMEWORK = ServerFramework.VLLM
 
 import os
 
-os.environ["HF_TOKEN"] = dbutils.secrets.get(scope="sri-mlflow-extensions", key="hf-token")
+os.environ["HF_TOKEN"] = dbutils.secrets.get(
+    scope="sri-mlflow-extensions", key="hf-token"
+)
 os.environ["HF_HUB_ENABLE_HF_TRANSFER"] = "1"
 
 # COMMAND ----------
@@ -80,5 +82,3 @@ else:
 assert len(errored_results) == 0, "Tests failed"
 
 # COMMAND ----------
-
-

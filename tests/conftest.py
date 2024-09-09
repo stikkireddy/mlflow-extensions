@@ -9,7 +9,6 @@ from databricks.sdk import WorkspaceClient
 from dotenv import find_dotenv, load_dotenv
 from mlflow import MlflowClient
 
-
 src_dir: Path = Path(__file__).parents[1]
 sys.path.insert(0, str(src_dir.resolve()))
 
