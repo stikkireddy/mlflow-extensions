@@ -9,6 +9,7 @@ from mlflow_extensions.databricks.deploy.gpu_configs import (
     GPUConfig,
 )
 from mlflow_extensions.databricks.prebuilt import prebuilt
+from mlflow_extensions.serving.engines import VLLMEngineConfig
 from mlflow_extensions.serving.engines.base import EngineProcess
 from mlflow_extensions.testing.audio_basic import (
     query_audio,
@@ -202,7 +203,13 @@ def run_all_tests(
                         model=ezconfig.engine_config.model,
                         modality_type=modality,
                     )
-                    if server_framework == ServerFramework.VLLM:
+                    if (
+                        server_framework == ServerFramework.VLLM
+                        and isinstance(ezconfig.engine_config, VLLMEngineConfig)
+                        and ezconfig.engine_config.max_num_images is not None
+                        and ezconfig.engine_config.max_num_images > 1
+                    ):
+                        # TODO: accept max num images to ensure we test multiple images
                         query_vision_multi_input(
                             ctx=ctx,
                             model=ezconfig.engine_config.model,
