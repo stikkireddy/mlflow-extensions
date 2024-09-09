@@ -37,4 +37,3 @@ class SglangText:
     META_LLAMA_3_1_8B_INSTRUCT_CONFIG: EzDeployConfig = field(
         default_factory=lambda: META_LLAMA_3_1_8B_INSTRUCT_CONFIG
     )
-

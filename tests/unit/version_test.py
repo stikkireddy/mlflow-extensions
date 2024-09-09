@@ -1,5 +1,6 @@
 import re
 from re import Pattern
+
 import pytest
 
 from mlflow_extensions.version import get_mlflow_extensions_version
@@ -10,7 +11,8 @@ def test_should_return_correct_version() -> None:
     version: str = get_mlflow_extensions_version()
     assert version is not None
 
-    pep440_regex: Pattern = re.compile(r"""
+    pep440_regex: Pattern = re.compile(
+        r"""
     ^
     (?P<version>
         (0|[1-9]\d*)                # Major version
@@ -30,7 +32,9 @@ def test_should_return_correct_version() -> None:
         (\+[a-zA-Z0-9]+(\.[a-zA-Z0-9]+)*)   # Local version identifier (optional)
     )?
     $
-    """, re.VERBOSE)
+    """,
+        re.VERBOSE,
+    )
 
     match: re.Match = re.match(pep440_regex, version)
     assert version is not None and match is not None

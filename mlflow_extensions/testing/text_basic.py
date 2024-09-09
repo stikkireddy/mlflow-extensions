@@ -1,13 +1,11 @@
-
-from mlflow_extensions.testing.helper import run_if, inject_openai_client, Modality
 import typing
+
+from mlflow_extensions.testing.helper import Modality, inject_openai_client, run_if
 
 if typing.TYPE_CHECKING is True:
     from openai import OpenAi
-    from mlflow_extensions.testing.runner import (
-        ModelContextRunner,
-    )
 
+    from mlflow_extensions.testing.runner import ModelContextRunner
 
 
 @run_if(modality=Modality.TEXT.value)
@@ -25,8 +23,9 @@ def query_text(
     count = 0
     # repeat a few times
     while count < repeat_n:
+        from typing import List, Literal
+
         from pydantic import BaseModel
-        from typing import Literal, List
 
         class ExtractedBody(BaseModel):
             product: str

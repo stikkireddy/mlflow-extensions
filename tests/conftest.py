@@ -20,9 +20,10 @@ load_dotenv(env_path)
 
 # Alias HF_TOKEN to HUGGINGFACEHUB_API_TOKEN
 if any([e in os.environ for e in ["HUGGINGFACEHUB_API_TOKEN", "HF_TOKEN"]]):
-  os.environ["HUGGINGFACEHUB_API_TOKEN"] = (
-    os.environ.get("HUGGINGFACEHUB_API_TOKEN", os.environ.get("HF_TOKEN"))
-  )
+    os.environ["HUGGINGFACEHUB_API_TOKEN"] = os.environ.get(
+        "HUGGINGFACEHUB_API_TOKEN", os.environ.get("HF_TOKEN")
+    )
+
 
 def warn_if_missing(*env_vars: str) -> None:
     has_missing: bool = False
