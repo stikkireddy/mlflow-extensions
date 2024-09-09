@@ -118,6 +118,7 @@ class Command:
 @dataclass(frozen=True, kw_only=True)
 class EngineConfig(abc.ABC):
     model: str
+    cache_dir: Optional[str] = field(default=None)
     host: str = field(default="0.0.0.0")
     port: int = field(default=9989)
     openai_api_path: int = field(default="v1")
@@ -148,7 +149,6 @@ class EngineConfig(abc.ABC):
         mlflow_extensions_version: str = None,
         **kwargs,
     ) -> List[str]:
-
         mlflow_extensions_version = (
             mlflow_extensions_version or get_mlflow_extensions_version()
         )
@@ -179,7 +179,6 @@ class EngineConfig(abc.ABC):
 
 
 class EngineProcess(abc.ABC):
-
     def __init__(self, *, config: EngineConfig):
         self._config = config
         self._lock = FileLock(f"{self.__class__.__name__}.txt.lock")
