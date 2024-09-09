@@ -23,6 +23,12 @@ a simple three-step process.
 pip install mlflow-extensions
 ```
 
+## Notice
+
+This project is in active development and apis may change and break. Please use the package with this in mind. We will 
+try to keep the changes to a minimum and provide a migration guide when we do make breaking changes. We will 
+provide a stable api once we have good test coverage and are ready to upgrade to a 1.0.0 release.
+
 ## Supported Server Frameworks
 
 1. vLLM
