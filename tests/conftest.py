@@ -24,7 +24,7 @@ def mlflow_client() -> MlflowClient:
 @pytest.fixture
 def workspace_client() -> WorkspaceClient:
     return WorkspaceClient(
-        host=os.environ["DATABRICKS_HOST"], token=os.environ["DATABRICKS_TOKEN"]
+        host=os.environ.get("DATABRICKS_HOST"), token=os.environ.get("DATABRICKS_TOKEN")
     )
 
 
