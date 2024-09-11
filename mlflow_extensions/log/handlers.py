@@ -110,7 +110,7 @@ class SizeAndTimedRotatingVolumeHandler(TimedRotatingFileHandler):
         self.backup_count = backup_count
 
         self.namer: Callable[[str], str] = RotatingFileNamer()
-        self.rotator: Callable[[str], str] = VolumeRotator(
+        self.rotator: Callable[[str, str], None] = VolumeRotator(
             volume_path=volume_path,
             databricks_host=databricks_host,
             databricks_token=databricks_token,
