@@ -67,6 +67,7 @@ class VolumeRotator:
         self, file_path: str, contents: bytearray, overwrite: bool = True
     ) -> None:
         try:
+            logger.info("Uploading log file", file_path=file_path)
             self._workspace_client.files.upload(file_path, contents, overwrite=True)
         except Exception as e:
             logger.error("Failed to upload file", file_path=file_path, error=str(e))
