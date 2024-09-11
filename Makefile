@@ -34,7 +34,7 @@ build:
 
 upload: check
 	@echo "Uploading to PyPI..."
-	@$(PUBLISH) upload dist/*
+	@$(PUBLISH) dist/*
 	@echo "Finished uploading to PyPI."
 
 check:
