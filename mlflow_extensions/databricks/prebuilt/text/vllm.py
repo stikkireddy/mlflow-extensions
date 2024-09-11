@@ -68,6 +68,24 @@ NOUS_HERMES_3_LLAMA_3_1_8B_128K = EzDeployConfig(
     ),
 )
 
+COHERE_FOR_AYA_23_35B = EzDeployConfig(
+    name="cohere_aya",
+    engine_proc=_ENGINE,
+    engine_config=_ENGINE_CONFIG(
+        model="CohereForAI/aya-23-35B",
+        guided_decoding_backend="outlines",
+        vllm_command_flags={
+            "--max-num-seqs": 128,
+            "--gpu-memory-utilization": 0.98,
+            "--distributed-executor-backend": "ray",
+        },
+    ),
+    serving_config=ServingConfig(
+        # rough estimate for the engines this includes model weights + kv cache + overhead + intermediate states
+        minimum_memory_in_gb=76,
+    ),
+)
+
 
 # https://huggingface.co/microsoft/Phi-3.5-MoE-instruct
 # PHI_3_5_MOE_INSTRUCT_8K = EzDeployConfig(
@@ -97,5 +115,8 @@ class VllmText:
     )
     NOUS_HERMES_3_LLAMA_3_1_8B_128K: EzDeployConfig = field(
         default_factory=lambda: NOUS_HERMES_3_LLAMA_3_1_8B_128K
+    )
+    COHERE_FOR_AYA_23_35B: EzDeployConfig = field(
+        default_factory=lambda: COHERE_FOR_AYA_23_35B
     )
     # PHI_3_5_MOE_INSTRUCT_8K = PHI_3_5_MOE_INSTRUCT_8K
