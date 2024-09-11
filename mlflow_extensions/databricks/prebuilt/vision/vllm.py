@@ -25,6 +25,10 @@ def phi_3_5_vision_instruct(
             trust_remote_code=True,
             guided_decoding_backend="outlines",
             max_num_images=max_num_images,
+            vllm_command_flags={
+                "--gpu-memory-utilization": 0.98,
+                "--enforce-eager": None
+            },
             **model_cfg,
         ),
         serving_config=ServingConfig(
