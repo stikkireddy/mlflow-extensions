@@ -15,14 +15,12 @@ logger: BoundLogger = structlog.get_logger(__name__)
 DEFAULT_MAX_BYTES: int = 10 * 1024 * 1024
 DEFAULT_BACKUP_COUNT: int = 5
 
-
 def full_volume_name_to_path(full_volume_name: str) -> str:
     catalog_name: str
     schema_name: str
     volume_name: str
     catalog_name, schema_name, volume_name = full_volume_name.split(".")
     return f"/Volumes/{catalog_name}/{schema_name}/{volume_name}"
-
 
 class RotatingFileNamer:
 
@@ -58,14 +56,13 @@ class VolumeRotator:
             with open(dst, "r") as fin:
                 content: str = fin.read()
                 filename: str = Path(dst).name
-                self._upload(f"{self._volume_path}/{filename}", content, overwrite=True)
+                self._upload(f"{self._volume_path}/{filename}.jsonl", content, overwrite=True)
 
     @retry(wait=wait_fixed(1), stop=stop_after_attempt(3))
     def _upload(
         self, file_path: str, contents: bytearray, overwrite: bool = True
     ) -> None:
         try:
-            print("Uploading log file", file_path=file_path)
             logger.info("Uploading log file", file_path=file_path)
             self._workspace_client.files.upload(file_path, contents, overwrite=True)
         except Exception as e:
@@ -90,7 +87,10 @@ class SizeAndTimedRotatingVolumeHandler(TimedRotatingFileHandler):
         at_time=None,
         errors=None,
     ):
+        if max_bytes > 0:
+            max_bytes = max(1024, max_bytes)
         self._max_bytes = max_bytes
+        
         TimedRotatingFileHandler.__init__(
             self,
             filename,
