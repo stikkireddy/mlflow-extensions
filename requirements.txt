@@ -3,3 +3,6 @@ filelock
 httpx
 huggingface-hub
 databricks-sdk
+tenacity
+python-json-logger 
+
