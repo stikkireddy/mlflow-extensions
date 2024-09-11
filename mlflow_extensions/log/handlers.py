@@ -108,10 +108,10 @@ def _get_volume_path(volume_path: Optional[str]) -> Optional[str]:
     volume_path = volume_path or os.environ.get("LOGGING_VOLUME_PATH")
     if volume_path is None:
         volume: str = os.environ.get("LOGGING_VOLUME")
-        volume_path = _full_volume_name_to_path(volume)
-        model_name = os.environ.get("LOGGING_MODEL_NAME")
-        endpoint_id = os.environ.get("LOGGING_ENDPOINT_ID")
-        run_id = os.environ.get("LOGGING_RUN_ID")
+        volume_path: str = _full_volume_name_to_path(volume)
+        model_name: str = os.environ.get("LOGGING_MODEL_NAME")
+        endpoint_id: str = os.environ.get("LOGGING_ENDPOINT_ID")
+        run_id: str = os.environ.get("LOGGING_RUN_ID")
 
         if volume_path is not None:
             volume_path = "/".join(
