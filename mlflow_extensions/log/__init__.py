@@ -10,6 +10,7 @@ import structlog.stdlib
 from pythonjsonlogger import jsonlogger
 from structlog.stdlib import BoundLogger
 from structlog.types import EventDict, WrappedLogger
+
 from mlflow_extensions.version import get_mlflow_extensions_version
 
 Logger = BoundLogger
@@ -78,6 +79,7 @@ def initialize_logging(
         handler.setFormatter(json_formatter)
         handler.setLevel(level)
 
+    logging.shutdown()
     logging.basicConfig(level=level, format="%(message)s", handlers=handlers)
 
     def filter_by_level(logger: Logger, name: str, event_dict: EventDict) -> EventDict:
@@ -88,6 +90,7 @@ def initialize_logging(
             raise structlog.DropEvent
 
     version: str = get_mlflow_extensions_version()
+
     def add_library_version(
         logger: Logger, method_name: str, event_dict: EventDict
     ) -> EventDict:
@@ -95,19 +98,21 @@ def initialize_logging(
         return event_dict
 
     hostname: str = socket.gethostname()
+
     def add_hostname(
         logger: Logger, method_name: str, event_dict: EventDict
     ) -> EventDict:
         event_dict["host"] = hostname
         return event_dict
-    
+
     ip: str = socket.gethostbyname(hostname)
+
     def add_ip_address(
         logger: Logger, method_name: str, event_dict: EventDict
     ) -> EventDict:
         event_dict["ip"] = socket.gethostbyname(socket.gethostname())
         return event_dict
-    
+
     structlog.configure_once(
         processors=[
             filter_by_level,

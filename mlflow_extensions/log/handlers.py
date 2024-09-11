@@ -3,7 +3,7 @@ import os
 from datetime import datetime
 from logging.handlers import TimedRotatingFileHandler
 from pathlib import Path
-from typing import Any, Callable, List, Optional
+from typing import Any, Callable, List, Optional, Tuple
 
 import structlog
 from databricks.sdk import WorkspaceClient
@@ -16,11 +16,18 @@ DEFAULT_MAX_BYTES: int = 10 * 1024 * 1024
 DEFAULT_BACKUP_COUNT: int = 5
 
 
-def full_volume_name_to_path(full_volume_name: str) -> str:
+def _full_volume_name_to_path(full_volume_name: str) -> Optional[str]:
+    if full_volume_name is None:
+        return None
+
     catalog_name: str
     schema_name: str
     volume_name: str
-    catalog_name, schema_name, volume_name = full_volume_name.split(".")
+    parts: List[str] = full_volume_name.split(".")
+    if len(parts) != 3:
+        return None
+
+    catalog_name, schema_name, volume_name = parts
     return f"/Volumes/{catalog_name}/{schema_name}/{volume_name}"
 
 
@@ -33,6 +40,13 @@ class RotatingFileNamer:
         return ".".join(out_parts)
 
 
+class FileRotator:
+
+    def __call__(self, src: str, dst: str) -> None:
+        if os.path.exists(src):
+            os.rename(src, dst)
+
+
 class VolumeRotator:
 
     def __init__(
@@ -41,16 +55,13 @@ class VolumeRotator:
         databricks_host: Optional[str],
         databricks_token: Optional[str],
     ) -> None:
-        from mlflow.utils.databricks_utils import get_databricks_host_creds
 
         self._volume_path = volume_path
-        if databricks_host is None or databricks_token is None:
-            databricks_host = get_databricks_host_creds().host
-            databricks_token = get_databricks_host_creds().token
-
         self._workspace_client: WorkspaceClient = WorkspaceClient(
             host=databricks_host, token=databricks_token
         )
+        logger.info(f"Creating directory: {self._volume_path}")
+        self._workspace_client.files.create_directory(self._volume_path)
 
     def __call__(self, src: str, dst: str) -> None:
         if os.path.exists(src):
@@ -71,6 +82,73 @@ class VolumeRotator:
             self._workspace_client.files.upload(file_path, contents, overwrite=True)
         except Exception as e:
             logger.error("Failed to upload file", file_path=file_path, error=str(e))
+
+
+def _get_databricks_host_creds(
+    databricks_host: Optional[str], databricks_token: Optional[str]
+) -> Tuple[str, str]:
+    if databricks_host is None or databricks_token is None:
+        try:
+            from mlflow.utils.databricks_utils import get_databricks_host_creds
+
+            databricks_host = os.environ.get(
+                "DATABRICKS_HOST", get_databricks_host_creds().host
+            )
+            databricks_token = os.environ.get(
+                "DATABRICKS_TOKEN", get_databricks_host_creds().token
+            )
+        except ImportError:
+            databricks_host = os.environ.get("DATABRICKS_HOST")
+            databricks_token = os.environ.get("DATABRICKS_TOKEN")
+
+    return databricks_host, databricks_token
+
+
+def _get_volume_path(volume_path: Optional[str]) -> Optional[str]:
+    volume_path = volume_path or os.environ.get("LOGGING_VOLUME_PATH")
+    if volume_path is None:
+        volume: str = os.environ.get("LOGGING_VOLUME")
+        volume_path = _full_volume_name_to_path(volume)
+        model_name = os.environ.get("LOGGING_MODEL_NAME")
+        endpoint_id = os.environ.get("LOGGING_ENDPOINT_ID")
+        run_id = os.environ.get("LOGGING_RUN_ID")
+
+        if volume_path is not None:
+            volume_path = "/".join(
+                [
+                    x
+                    for x in [volume_path, model_name, endpoint_id, run_id]
+                    if x is not None
+                ]
+            )
+
+    return volume_path
+
+
+def create_rotator(
+    volume_path: Optional[str],
+    databricks_host: Optional[str],
+    databricks_token: Optional[str],
+) -> Callable[[str, str], None]:
+
+    volume_path = _get_volume_path(volume_path)
+    databricks_host, databricks_token = _get_databricks_host_creds(
+        databricks_host, databricks_token
+    )
+
+    rotator: Callable[[str, str], None] = FileRotator()
+    if all([v is not None for v in [databricks_host, databricks_token, volume_path]]):
+        try:
+            rotator = VolumeRotator(
+                volume_path=volume_path,
+                databricks_host=databricks_host,
+                databricks_token=databricks_token,
+            )
+        except Exception as e:
+            logger.error("Failed to create VolumeRotator", error=str(e))
+
+    logger.info("Rotator created", rotator=type(rotator))
+    return rotator
 
 
 class SizeAndTimedRotatingVolumeHandler(TimedRotatingFileHandler):
@@ -110,10 +188,8 @@ class SizeAndTimedRotatingVolumeHandler(TimedRotatingFileHandler):
         self.backup_count = backup_count
 
         self.namer: Callable[[str], str] = RotatingFileNamer()
-        self.rotator: Callable[[str, str], None] = VolumeRotator(
-            volume_path=volume_path,
-            databricks_host=databricks_host,
-            databricks_token=databricks_token,
+        self.rotator: Callable[[str, str], None] = create_rotator(
+            volume_path, databricks_host, databricks_token
         )
 
     def shouldRolloverOnSize(self) -> bool:
