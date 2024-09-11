@@ -154,7 +154,7 @@ def run_all_tests(
                     continue
                 if (
                     ezconfig.serving_config.minimum_memory_in_gb
-                    > gpu_config.gpu_type.memory_gb
+                    > gpu_config.total_memory_gb
                 ):
                     continue
                 if (

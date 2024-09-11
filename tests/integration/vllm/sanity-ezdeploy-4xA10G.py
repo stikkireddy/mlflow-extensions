@@ -16,6 +16,10 @@
 
 # COMMAND ----------
 
+# MAGIC %pip list | grep transformers
+
+# COMMAND ----------
+
 from mlflow_extensions.databricks.deploy.gpu_configs import AWSServingGPUConfig
 from mlflow_extensions.testing.runner import (
     RequestResult,
@@ -23,7 +27,7 @@ from mlflow_extensions.testing.runner import (
     run_all_tests,
 )
 
-THIS_GPU = AWSServingGPUConfig.GPU_MEDIUM.value
+THIS_GPU = AWSServingGPUConfig.MULTIGPU_MEDIUM.value
 THIS_FRAMEWORK = ServerFramework.VLLM
 
 # COMMAND ----------
