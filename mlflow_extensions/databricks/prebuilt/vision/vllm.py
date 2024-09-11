@@ -27,7 +27,7 @@ def phi_3_5_vision_instruct(
             max_num_images=max_num_images,
             vllm_command_flags={
                 "--gpu-memory-utilization": 0.98,
-                "--enforce-eager": None
+                "--enforce-eager": None,
             },
             **model_cfg,
         ),
