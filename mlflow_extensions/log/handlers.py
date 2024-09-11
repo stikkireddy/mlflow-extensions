@@ -230,7 +230,7 @@ class SizeAndTimedRotatingVolumeHandler(TimedRotatingFileHandler):
 
 def rotating_volume_handler(
     filename: str,
-    volume_path: str,
+    volume_path: Optional[str] = None,
     databricks_host: Optional[str] = None,
     databricks_token: Optional[str] = None,
     when: str = "h",

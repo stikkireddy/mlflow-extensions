@@ -1,5 +1,6 @@
 import inspect
 import logging
+import os
 import socket
 from enum import IntEnum
 from types import FrameType
@@ -113,6 +114,21 @@ def initialize_logging(
         event_dict["ip"] = socket.gethostbyname(socket.gethostname())
         return event_dict
 
+    model_name: str = os.environ.get("LOGGING_MODEL_NAME")
+    endpoint_id: str = os.environ.get("LOGGING_ENDPOINT_ID")
+    run_id: str = os.environ.get("LOGGING_RUN_ID")
+
+    def add_model_info(
+        logger: Logger, method_name: str, event_dict: EventDict
+    ) -> EventDict:
+        if model_name is not None:
+            event_dict["model"] = model_name
+        if endpoint_id is not None:
+            event_dict["endpoint_id"] = endpoint_id
+        if run_id is not None:
+            event_dict["run_id"] = run_id
+        return event_dict
+
     structlog.configure_once(
         processors=[
             filter_by_level,
@@ -121,6 +137,7 @@ def initialize_logging(
             add_hostname,
             add_ip_address,
             add_library_version,
+            add_model_info,
             structlog.stdlib.PositionalArgumentsFormatter(),
             structlog.processors.TimeStamper(fmt="iso"),
             structlog.processors.StackInfoRenderer(),
