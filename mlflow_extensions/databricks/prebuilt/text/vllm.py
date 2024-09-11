@@ -69,7 +69,7 @@ NOUS_HERMES_3_LLAMA_3_1_8B_128K = EzDeployConfig(
 )
 
 COHERE_FOR_AYA_23_35B = EzDeployConfig(
-    name="cohere_aya",
+    name="cohere_aya_35b",
     engine_proc=_ENGINE,
     engine_config=_ENGINE_CONFIG(
         model="CohereForAI/aya-23-35B",
