@@ -16,6 +16,14 @@ DEFAULT_MAX_BYTES: int = 10 * 1024 * 1024
 DEFAULT_BACKUP_COUNT: int = 5
 
 
+def full_volume_name_to_path(full_volume_name: str) -> str:
+    catalog_name: str
+    schema_name: str
+    volume_name: str
+    catalog_name, schema_name, volume_name = full_volume_name.split(".")
+    return f"/Volumes/{catalog_name}/{schema_name}/{volume_name}"
+
+
 class RotatingFileNamer:
 
     def __call__(self, default_name: str) -> str:

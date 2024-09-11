@@ -12,7 +12,16 @@ from databricks.sdk.service.catalog import VolumeType
 from databricks.sdk.service.files import DirectoryEntry
 
 from mlflow_extensions.log import Logger, LogLevel, get_logger, initialize_logging
-from mlflow_extensions.log.handlers import rotating_volume_handler
+from mlflow_extensions.log.handlers import (
+    full_volume_name_to_path,
+    rotating_volume_handler,
+)
+
+
+def test_full_volume_name_to_path() -> None:
+    full_volume_name: str = "foo.bar.baz"
+    expected_path: str = "/Volumes/foo/bar/baz"
+    assert full_volume_name_to_path(full_volume_name) == expected_path
 
 
 def test_intialize_logging_with_defaults() -> None:
