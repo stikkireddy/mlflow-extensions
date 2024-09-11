@@ -139,7 +139,7 @@ class SizeAndTimedRotatingVolumeHandler(TimedRotatingFileHandler):
             _, ext = os.path.splitext(fileName)
             date_str = ext.replace(".", "")
             try:
-                d = datetime.strptime(date_str, "%Y-%m-%d_%H-%M-%S")
+                d = datetime.strptime(date_str, "%Y%m%d_%H%M%S_%f")
                 files_dict[d] = fileName
             except:
                 pass
