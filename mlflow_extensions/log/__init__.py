@@ -124,10 +124,15 @@ def initialize_logging(config: LogConfig) -> None:
     level: LogLevel = LogLevel.to_level(config.level)
     json_formatter: jsonlogger.JsonFormatter = jsonlogger.JsonFormatter()
 
+    class ExcludeStandardLoggerFilter(logging.Filter):
+        def filter(self, record):
+            return not isinstance(record, logging.LogRecord)
+    
     for handler in handlers:
         handler.setFormatter(json_formatter)
         handler.setLevel(level)
-
+        handler.addFilter(ExcludeStandardLoggerFilter())
+        
     logging.shutdown()
     logging.basicConfig(level=level, format="%(message)s", handlers=handlers)
 
