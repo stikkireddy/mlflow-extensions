@@ -171,7 +171,7 @@ class VLLMEngineConfig(EngineConfig):
             model_dir_path = Path(artifacts[self.model_artifact_key])
         else:
             model_dir_path = Path(artifacts[self.tokenizer_artifact_key])
-        if self.tokenizer_mode is not None and self.tokenizer_mode not in [
+        if self.tokenizer_mode is not None and self.tokenizer_mode in [
             "auto",
             "slow",
         ]:
