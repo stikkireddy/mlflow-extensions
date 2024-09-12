@@ -131,11 +131,15 @@ class SglangEngineConfig(EngineConfig):
         sglang_version: str = "0.3.0",
         flashinfer_extra_index_url: str = "https://flashinfer.ai/whl/cu121/torch2.4/",
         flashinfer_version: str = "0.1.6",
-    ) -> List[str]:
-        default_installs = [f"sglang[all]=={sglang_version}"]
+    ) -> Dict[str, str]:
+        default_installs = {
+            "sglang": f"sglang[all]=={sglang_version}",
+        }
         if flashinfer_extra_index_url is not None:
-            default_installs.append(f"--extra-index-url={flashinfer_extra_index_url}")
-        default_installs.append(f"flashinfer=={flashinfer_version}")
+            default_installs["extra_index_url"] = (
+                f"--extra-index-url={flashinfer_extra_index_url}"
+            )
+        default_installs["flashinfer"] = f"flashinfer=={flashinfer_version}"
         return default_installs
 
     def _setup_snapshot(self, local_dir: str = "/root/models"):

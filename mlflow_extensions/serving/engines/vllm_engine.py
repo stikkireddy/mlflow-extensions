@@ -148,12 +148,16 @@ class VLLMEngineConfig(EngineConfig):
         vllm_version: str = "0.6.0",
         lm_format_enforcer_version: str = "0.10.6",
         outlines_version: str = "0.0.46",
-    ) -> List[str]:
-        default_installs = [f"vllm=={vllm_version}"]
+    ) -> Dict[str, str]:
+        default_installs = {
+            "vllm": f"vllm=={vllm_version}",
+        }
         if self.guided_decoding_backend == "lm-format-enforcer":
-            default_installs.append(f"lm-format-enforcer=={lm_format_enforcer_version}")
+            default_installs["lm-format-enforcer"] = (
+                f"lm-format-enforcer=={lm_format_enforcer_version}"
+            )
         if self.guided_decoding_backend == "outlines":
-            default_installs.append(f"outlines=={outlines_version}")
+            default_installs["outlines"] = f"outlines=={outlines_version}"
         return default_installs
 
     def _setup_snapshot(self, local_dir: str = "/root/models"):
