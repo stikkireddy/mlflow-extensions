@@ -59,7 +59,7 @@ class LogLevel(IntEnum):
 
 @dataclass
 class LogConfig:
-    filename: str
+    filename: Optional[str] = None
     level: Union[LogLevel, int, str] = LogLevel.INFO
     archive_path: Optional[str] = None
     databricks_host: Optional[str] = None
