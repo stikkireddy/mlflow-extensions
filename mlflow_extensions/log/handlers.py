@@ -1,4 +1,5 @@
 import datetime
+import logging
 import os
 from datetime import datetime
 from logging.handlers import TimedRotatingFileHandler
@@ -12,11 +13,8 @@ from tenacity import retry, stop_after_attempt, wait_fixed
 
 logger: BoundLogger = structlog.get_logger(__name__)
 
-DEFAULT_MAX_BYTES: int = 10 * 1024 * 1024
-DEFAULT_BACKUP_COUNT: int = 5
 
-
-def _full_volume_name_to_path(full_volume_name: str) -> Optional[str]:
+def full_volume_name_to_path(full_volume_name: str) -> Optional[str]:
     if full_volume_name is None:
         return None
 
@@ -104,34 +102,12 @@ def _get_databricks_host_creds(
     return databricks_host, databricks_token
 
 
-def _get_volume_path(volume_path: Optional[str]) -> Optional[str]:
-    volume_path = volume_path or os.environ.get("LOGGING_VOLUME_PATH")
-    if volume_path is None:
-        volume: str = os.environ.get("LOGGING_VOLUME")
-        volume_path: str = _full_volume_name_to_path(volume)
-        model_name: str = os.environ.get("LOGGING_MODEL_NAME")
-        endpoint_id: str = os.environ.get("LOGGING_ENDPOINT_ID")
-        run_id: str = os.environ.get("LOGGING_RUN_ID")
-
-        if volume_path is not None:
-            volume_path = "/".join(
-                [
-                    x
-                    for x in [volume_path, model_name, endpoint_id, run_id]
-                    if x is not None
-                ]
-            )
-
-    return volume_path
-
-
 def create_rotator(
     volume_path: Optional[str],
     databricks_host: Optional[str],
     databricks_token: Optional[str],
 ) -> Callable[[str, str], None]:
 
-    volume_path = _get_volume_path(volume_path)
     databricks_host, databricks_token = _get_databricks_host_creds(
         databricks_host, databricks_token
     )
@@ -156,13 +132,13 @@ class SizeAndTimedRotatingVolumeHandler(TimedRotatingFileHandler):
     def __init__(
         self,
         filename: str,
-        volume_path: str,
+        archive_path: Optional[str] = None,
         databricks_host: Optional[str] = None,
         databricks_token: Optional[str] = None,
         when: str = "h",
         interval: int = 1,
-        max_bytes: int = DEFAULT_MAX_BYTES,
-        backup_count: int = DEFAULT_BACKUP_COUNT,
+        max_bytes: int = 0,
+        backup_count: int = 0,
         encoding: Optional[str] = None,
         delay: bool = False,
         utc: bool = False,
@@ -189,7 +165,7 @@ class SizeAndTimedRotatingVolumeHandler(TimedRotatingFileHandler):
 
         self.namer: Callable[[str], str] = RotatingFileNamer()
         self.rotator: Callable[[str, str], None] = create_rotator(
-            volume_path, databricks_host, databricks_token
+            archive_path, databricks_host, databricks_token
         )
 
     def shouldRolloverOnSize(self) -> bool:
@@ -230,22 +206,22 @@ class SizeAndTimedRotatingVolumeHandler(TimedRotatingFileHandler):
 
 def rotating_volume_handler(
     filename: str,
-    volume_path: Optional[str] = None,
+    archive_path: Optional[str] = None,
     databricks_host: Optional[str] = None,
     databricks_token: Optional[str] = None,
     when: str = "h",
     interval: int = 1,
-    max_bytes: int = DEFAULT_MAX_BYTES,
-    backup_count: int = DEFAULT_BACKUP_COUNT,
+    max_bytes: int = 0,
+    backup_count: int = 0,
     encoding: Optional[str] = None,
     delay: bool = False,
     utc: bool = False,
     at_time=None,
     errors=None,
-) -> SizeAndTimedRotatingVolumeHandler:
+) -> logging.Handler:
     return SizeAndTimedRotatingVolumeHandler(
         filename=filename,
-        volume_path=volume_path,
+        archive_path=archive_path,
         databricks_host=databricks_host,
         databricks_token=databricks_token,
         when=when,

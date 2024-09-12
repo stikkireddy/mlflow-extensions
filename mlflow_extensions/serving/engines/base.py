@@ -14,14 +14,14 @@ import psutil
 from filelock import FileLock
 from mlflow.pyfunc import PythonModelContext
 
+from mlflow_extensions.log import Logger, get_logger, log_around
 from mlflow_extensions.serving.engines.gpu_utils import not_enough_shm
 from mlflow_extensions.version import get_mlflow_extensions_version
 
-
-def debug_msg(msg: str):
-    print(f"[DEBUG][pid:{os.getpid()}] {msg}")
+LOGGER: Logger = get_logger()
 
 
+@log_around(logger=LOGGER)
 def is_port_open(host: str, port: int) -> bool:
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
         result = sock.connect_ex((host, port))
@@ -36,6 +36,7 @@ class Command:
     long_living: bool = True
     env: Optional[Dict[str, str]] = None
 
+    @log_around(logger=LOGGER)
     def start(self):
         if self.long_living is True:
             self.active_process = subprocess.Popen(
@@ -57,6 +58,7 @@ class Command:
                 bufsize=1,  # Line-buffered
             )
 
+    @log_around(logger=LOGGER)
     def is_running(self) -> bool:
         if self.active_process is None:
             return False
@@ -64,9 +66,10 @@ class Command:
             return False
         return True
 
+    @log_around(logger=LOGGER)
     def wait_and_log(self):
         if self.active_process is None:
-            print("Process has not been started.")
+            LOGGER.info("Process has not been started.")
             return
 
         if self.long_living is True:
@@ -77,17 +80,18 @@ class Command:
         try:
             # Stream and print stdout
             for line in self.active_process.stdout:
-                print(f"STDOUT: {line.strip()}")
+                LOGGER.info(f"STDOUT: {line.strip()}")
 
             # Wait for the process to complete
             self.active_process.wait()
 
             # Check the exit code
-            print("Exit Code:", self.active_process.returncode)
+            LOGGER.info("Exit Code:", self.active_process.returncode)
 
         except Exception as e:
-            print(f"Error while waiting for logs: {e}")
+            LOGGER.error(f"Error while waiting for logs: {e}", error=e)
 
+    @log_around(logger=LOGGER)
     def stop(self):
         if self.is_running() is False:
             return
@@ -106,13 +110,13 @@ class Command:
             stdout, stderr = self.active_process.communicate(timeout=10)
         except subprocess.TimeoutExpired:
             stdout, stderr = self.active_process.communicate()
-            print("Timed out")
+            LOGGER.warning("Timed out")
 
         try:
-            print("STDOUT:", stdout.decode())
-            print("STDERR:", stderr.decode())
+            LOGGER.info("STDOUT:", stdout.decode())
+            LOGGER.info("STDERR:", stderr.decode())
         finally:
-            print("Exit Code:", self.active_process.returncode)
+            LOGGER.info("Exit Code:", self.active_process.returncode)
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -129,16 +133,18 @@ class EngineConfig(abc.ABC):
     ) -> Union[List[str], Command]:
         pass
 
+    @log_around(logger=LOGGER)
     def to_run_command(
         self, context: PythonModelContext = None
     ) -> Union[List[str], Command]:
         command = self._to_run_command(context)
-        debug_msg(f"Command: {command}")
+        LOGGER.info(f"Command: {command}")
         if isinstance(command, list):
             # ensure all items are strings
             return [str(item) for item in command]
         return command
 
+    @log_around(logger=LOGGER)
     def default_pip_reqs(
         self,
         *,
@@ -219,18 +225,21 @@ class EngineProcess(abc.ABC):
     def health_check(self) -> bool:
         pass
 
+    @log_around(logger=LOGGER)
     def is_process_healthy(self) -> bool:
         if not is_port_open(self.config.host, self.config.port):
             return False
 
         return self.health_check()
 
+    @log_around(logger=LOGGER)
     def stop_proc(self):
         with self._lock:
             self._kill_active_proc()
             self._proc = None
             self._run_health_check = False
 
+    @log_around(logger=LOGGER)
     def _is_process_running(self):
         if self._proc is None:
             return False
@@ -240,17 +249,21 @@ class EngineProcess(abc.ABC):
         except psutil.NoSuchProcess:
             return False
 
+    @log_around(logger=LOGGER)
     def _kill_active_proc(self):
         os.killpg(os.getpgid(self._proc.pid), signal.SIGTERM)
         time.sleep(5)
         if self._proc.poll() is None:
             os.killpg(os.getpgid(self._proc.pid), signal.SIGKILL)
 
+    @log_around(logger=LOGGER)
     def _spawn_server_proc(self, context: PythonModelContext = None):
         proc_env = os.environ.copy()
         server_details = {"HOST": self.config.host, "PORT": str(self.config.host)}
         if not_enough_shm() is True:
-            debug_msg("Not enough shared memory for NCCL. Setting NCCL_SHM_DISABLE=1")
+            LOGGER.warning(
+                "Not enough shared memory for NCCL. Setting NCCL_SHM_DISABLE=1"
+            )
             server_details["NCCL_SHM_DISABLE"] = "1"
         proc_env.update(server_details)
         command = self.config.to_run_command(context)
@@ -264,9 +277,10 @@ class EngineProcess(abc.ABC):
             command.start()
 
         while self.is_process_healthy() is False and self._is_process_running() is True:
-            debug_msg(f"Waiting for {self.engine_name} to start")
+            LOGGER.info(f"Waiting for {self.engine_name} to start")
             time.sleep(1)
 
+    @log_around(logger=LOGGER)
     def ensure_server_is_running(
         self,
         *,
@@ -274,14 +288,14 @@ class EngineProcess(abc.ABC):
         health_check_frequency_seconds: int = 10,
         max_respawn_attempts: int = 3,
     ):
-        print(f"Ensuring {self.engine_name} is running for pid {self._proc.pid}")
+        LOGGER.info(f"Ensuring {self.engine_name} is running for pid {self._proc.pid}")
         if self._proc is None:
             raise ValueError("Process not started yet. Run start_proc() first.")
         attempt_count = 0
         # check if pid is still running
         while True:
             if attempt_count > max_respawn_attempts:
-                debug_msg(
+                LOGGER.debug(
                     f"Max respawn attempts reached for {self.engine_name}. Restart serving endpoint."
                 )
                 break
@@ -293,33 +307,34 @@ class EngineProcess(abc.ABC):
                 else:
                     process = psutil.Process(self._proc.pid)
                     if process.status() == psutil.STATUS_ZOMBIE:
-                        debug_msg(
+                        LOGGER.info(
                             f"Process: {self._proc.pid} is zombie. Killing process."
                         )
                         self._kill_active_proc()
                     self._spawn_server_proc(context)
                     if self.health_check() is False:
-                        debug_msg(f"Health check failed after respawn.")
+                        LOGGER.info(f"Health check failed after respawn.")
                         attempt_count += 1
                     else:
                         attempt_count = 0
             except psutil.NoSuchProcess:
                 self._spawn_server_proc(context)
                 if self.health_check() is False:
-                    debug_msg(f"Health check failed after respawn.")
+                    LOGGER.error(f"Health check failed after respawn.")
                     attempt_count += 1
                 else:
                     attempt_count = 0
 
+    @log_around(logger=LOGGER)
     # todo add local lora paths
     def start_proc(
         self, context: PythonModelContext = None, health_check_thread: bool = True
     ):
         # kill process in port if already running
         time.sleep(random.randint(1, 5))
-        debug_msg(f"Attempting to acquire Lock")
+        LOGGER.debug(f"Attempting to acquire Lock")
         with self._lock:
-            debug_msg(f"Acquired Lock")
+            LOGGER.debug(f"Acquired Lock")
             if self.health_check() is False:
                 self._spawn_server_proc(context)
                 self._run_health_check = True
@@ -333,4 +348,4 @@ class EngineProcess(abc.ABC):
                     if self._health_check_thread is not None:
                         self._health_check_thread.start()
             else:
-                debug_msg(f"{self.engine_name} already running")
+                LOGGER.debug(f"{self.engine_name} already running")

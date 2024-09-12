@@ -7,12 +7,10 @@ from typing import Dict, List, Optional, Union
 
 from mlflow.pyfunc import PythonModelContext
 
-from mlflow_extensions.serving.engines.base import (
-    Command,
-    EngineConfig,
-    EngineProcess,
-    debug_msg,
-)
+from mlflow_extensions.log import Logger, get_logger
+from mlflow_extensions.serving.engines.base import Command, EngineConfig, EngineProcess
+
+LOGGER: Logger = get_logger()
 
 
 def set_full_permissions(path: str):
@@ -145,7 +143,7 @@ class OllamaEngineProcess(EngineProcess):
             resp = self.server_http_client.get("/")
             return resp.status_code == 200
         except Exception as e:
-            debug_msg(
+            LOGGER.info(
                 f"Health check failed with error {e}; server may not be up yet or crashed;"
             )
             return False

@@ -1,10 +1,13 @@
+import functools
 import inspect
 import logging
 import os
 import socket
+import sys
+from dataclasses import dataclass, field
 from enum import IntEnum
 from types import FrameType
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, Union
 
 import structlog
 import structlog.stdlib
@@ -12,9 +15,13 @@ from pythonjsonlogger import jsonlogger
 from structlog.stdlib import BoundLogger
 from structlog.types import EventDict, WrappedLogger
 
+from mlflow_extensions.log.handlers import rotating_volume_handler
 from mlflow_extensions.version import get_mlflow_extensions_version
 
 Logger = BoundLogger
+
+DEFAULT_MAX_BYTES: int = 10 * 1024 * 1024
+DEFAULT_BACKUP_COUNT: int = 5
 
 
 class LogLevel(IntEnum):
@@ -37,6 +44,36 @@ class LogLevel(IntEnum):
             return cls[name.upper()]
         except KeyError:
             raise ValueError(f"No LogLevel with name {name}")
+
+    @classmethod
+    def to_level(cls, level: Union["LogLevel", str, int]) -> "LogLevel":
+        if isinstance(level, LogLevel):
+            return level
+        elif isinstance(level, str):
+            return cls.from_string(level)
+        elif isinstance(level, int):
+            return cls.from_int(level)
+        else:
+            raise ValueError(f"Invalid log level: {level}")
+
+
+@dataclass
+class LogConfig:
+    filename: str
+    level: Union[LogLevel, int, str] = LogLevel.INFO
+    archive_path: Optional[str] = None
+    databricks_host: Optional[str] = None
+    databricks_token: Optional[str] = None
+    when: str = "h"
+    interval: int = 1
+    max_bytes: int = DEFAULT_MAX_BYTES
+    backup_count: int = DEFAULT_BACKUP_COUNT
+    encoding: Optional[str] = None
+    delay: bool = False
+    utc: bool = False
+    at_time = None
+    errors = None
+    additional_vars: Dict[str, Any] = field(default_factory=dict)
 
 
 def get_logger(name: Optional[str] = None) -> Logger:
@@ -70,12 +107,18 @@ def get_logger(name: Optional[str] = None) -> Logger:
     return logger
 
 
-def initialize_logging(
-    level: LogLevel = LogLevel.INFO,
-    handlers: List[logging.Handler] = [],
-    additional_vars: Dict[str, Any] = {},
-) -> None:
+def initialize_logging(config: LogConfig) -> None:
 
+    stdout_handler: logging.Handler = logging.StreamHandler(sys.stdout)
+    volume_handler: logging.Handler = rotating_volume_handler(
+        filename=config.filename,
+        archive_path=config.archive_path,
+        max_bytes=config.max_bytes,
+        backup_count=config.backup_count,
+    )
+    handlers: List[logging.Handler] = [stdout_handler, volume_handler]
+
+    level: LogLevel = LogLevel.to_level(config.level)
     json_formatter: jsonlogger.JsonFormatter = jsonlogger.JsonFormatter()
 
     for handler in handlers:
@@ -100,26 +143,10 @@ def initialize_logging(
         event_dict["version"] = version
         return event_dict
 
-    hostname: str = socket.gethostname()
-
-    def add_hostname(
-        logger: Logger, method_name: str, event_dict: EventDict
-    ) -> EventDict:
-        event_dict["host"] = hostname
-        return event_dict
-
-    ip: str = socket.gethostbyname(hostname)
-
-    def add_ip_address(
-        logger: Logger, method_name: str, event_dict: EventDict
-    ) -> EventDict:
-        event_dict["ip"] = socket.gethostbyname(socket.gethostname())
-        return event_dict
-
     def add_additional_vars(
         logger: Logger, method_name: str, event_dict: EventDict
     ) -> EventDict:
-        for key, value in additional_vars.items():
+        for key, value in config.additional_vars.items():
             event_dict[key] = value
         return event_dict
 
@@ -128,8 +155,6 @@ def initialize_logging(
             filter_by_level,
             structlog.stdlib.add_log_level,
             structlog.stdlib.add_logger_name,
-            add_hostname,
-            add_ip_address,
             add_library_version,
             add_additional_vars,
             structlog.stdlib.PositionalArgumentsFormatter(),
@@ -153,3 +178,32 @@ def initialize_logging(
         wrapper_class=structlog.stdlib.BoundLogger,
         cache_logger_on_first_use=True,
     )
+
+
+def log_around(_func=None, *, logger: Union[Logger, logging.Logger] = None):
+    def decorator_log(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            nonlocal logger
+            if logger is None:
+                logger = get_logger(func.__name__)
+            args_repr: List[str] = [repr(a) for a in args]
+            kwargs_repr: List[str] = [f"{k}={v!r}" for k, v in kwargs.items()]
+            signature: str = ", ".join(args_repr + kwargs_repr)
+            logger.debug(f"entry: {func.__name__}", signature=signature)
+            try:
+                result = func(*args, **kwargs)
+                logger.debug(f"exit: {func.__name__}", result=result)
+                return result
+            except Exception as e:
+                logger.exception(
+                    f"Exception raised in {func.__name__}. exception: {str(e)}"
+                )
+                raise e
+
+        return wrapper
+
+    if _func is None:
+        return decorator_log
+    else:
+        return decorator_log(_func)

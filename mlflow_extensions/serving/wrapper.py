@@ -2,21 +2,26 @@ import json
 import os
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterator, List, Optional, Type
+from typing import Iterator, List, Literal, Optional, Type
 
 import mlflow
 import pandas as pd
 from httpx import Request, Response
 from mlflow.pyfunc import PythonModelContext
 
-from mlflow_extensions.serving.compute_details import get_compute_details
-from mlflow_extensions.serving.engines.base import (
-    EngineConfig,
-    EngineProcess,
-    debug_msg,
+from mlflow_extensions.log import (
+    LogConfig,
+    Logger,
+    LogLevel,
+    get_logger,
+    initialize_logging,
 )
+from mlflow_extensions.serving.compute_details import get_compute_details
+from mlflow_extensions.serving.engines.base import EngineConfig, EngineProcess
 from mlflow_extensions.serving.serde import ResponseMessageV1
 from mlflow_extensions.serving.serde_v2 import MlflowPyfuncHttpxSerializer
+
+LOGGER: Logger = get_logger()
 
 
 @dataclass
@@ -25,8 +30,12 @@ class CustomEngineServingResponse:
     data: dict
 
 
-DIAGNOSTICS_REQUEST_KEY = "COMPUTE_DIAGNOSTICS"
-ENABLE_DIAGNOSTICS_FLAG = "ENABLE_DIAGNOSTICS"
+DIAGNOSTICS_REQUEST_KEY: str = Literal["COMPUTE_DIAGNOSTICS"]
+ENABLE_DIAGNOSTICS_FLAG: str = Literal["ENABLE_DIAGNOSTICS"]
+
+LOG_LEVEL: str = Literal["LOG_LEVEL"]
+LOG_FILE_KEY: str = Literal["LOG_FILE"]
+ARCHIVE_LOG_PATH_KEY: str = Literal["ARCHIVE_LOG_PATH"]
 
 
 class CustomServingEnginePyfuncWrapper(mlflow.pyfunc.PythonModel):
@@ -60,6 +69,11 @@ class CustomServingEnginePyfuncWrapper(mlflow.pyfunc.PythonModel):
     def load_context(self, context: PythonModelContext):
         if self._engine is None:
             self._engine = self._engine_klass(config=self._engine_config)
+        log_config: LogConfig = LogConfig(
+            filename=os.environ.get(LOG_FILE_KEY, "serving.log"),
+            archive_path=os.environ.get(ARCHIVE_LOG_PATH_KEY),
+        )
+        initialize_logging(log_config)
         self._engine.start_proc(context)
 
     def predict(
@@ -134,6 +148,6 @@ class CustomServingEnginePyfuncWrapper(mlflow.pyfunc.PythonModel):
             home_directory.mkdir(parents=True, exist_ok=True)
         else:
             home_directory = local_dir
-        debug_msg(f"Setting up artifacts in {home_directory}")
+        LOGGER.info(f"Setting up artifacts in {home_directory}")
         self._setup_artifacts(str(home_directory))
-        debug_msg(f"Command to be run: {self._engine_config.to_run_command()}")
+        LOGGER.info(f"Command to be run: {self._engine_config.to_run_command()}")
