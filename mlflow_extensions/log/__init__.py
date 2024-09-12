@@ -110,13 +110,16 @@ def get_logger(name: Optional[str] = None) -> Logger:
 def initialize_logging(config: LogConfig) -> None:
 
     stdout_handler: logging.Handler = logging.StreamHandler(sys.stdout)
-    volume_handler: logging.Handler = rotating_volume_handler(
-        filename=config.filename,
-        archive_path=config.archive_path,
-        max_bytes=config.max_bytes,
-        backup_count=config.backup_count,
-    )
-    handlers: List[logging.Handler] = [stdout_handler, volume_handler]
+    handlers: List[logging.Handler] = [stdout_handler]
+    
+    if config.filename is not None:
+        volume_handler: logging.Handler = rotating_volume_handler(
+            filename=config.filename,
+            archive_path=config.archive_path,
+            max_bytes=config.max_bytes,
+            backup_count=config.backup_count,
+        )
+        handlers.append(volume_handler)
 
     level: LogLevel = LogLevel.to_level(config.level)
     json_formatter: jsonlogger.JsonFormatter = jsonlogger.JsonFormatter()
