@@ -248,7 +248,7 @@ class EngineProcess(abc.ABC):
 
     def _spawn_server_proc(self, context: PythonModelContext = None):
         proc_env = os.environ.copy()
-        server_details = {"HOST": self.config.host, "PORT": str(self.config.host)}
+        server_details = {"HOST": self.config.host, "PORT": str(self.config.port)}
         if not_enough_shm() is True:
             debug_msg("Not enough shared memory for NCCL. Setting NCCL_SHM_DISABLE=1")
             server_details["NCCL_SHM_DISABLE"] = "1"

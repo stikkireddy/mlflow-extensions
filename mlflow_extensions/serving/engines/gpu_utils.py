@@ -18,4 +18,7 @@ def get_total_shm_size_gb():
 
 
 def not_enough_shm(n_gb: int = 1) -> bool:
-    return get_total_shm_size_gb() < n_gb
+    try:
+        return get_total_shm_size_gb() < n_gb
+    except FileNotFoundError:
+        return True
