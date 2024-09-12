@@ -122,6 +122,7 @@ class EngineConfig(abc.ABC):
     port: int = field(default=9989)
     openai_api_path: int = field(default="v1")
     ensure_supported_models: bool = field(default=True)
+    library_overrides: dict = field(default_factory=dict)
 
     @abc.abstractmethod
     def _to_run_command(
@@ -148,24 +149,31 @@ class EngineConfig(abc.ABC):
         mlflow_extensions_version: str = None,
         **kwargs,
     ) -> List[str]:
-
         mlflow_extensions_version = (
             mlflow_extensions_version or get_mlflow_extensions_version()
         )
-        if mlflow_extensions_version is None:
-            mlflow_extensions = "mlflow-extensions"
-        else:
-            mlflow_extensions = f"mlflow-extensions=={mlflow_extensions_version}"
-        return [
-            f"httpx=={httpx_version}",
-            f"psutil=={psutil_version}",
-            *self.engine_pip_reqs(**kwargs),
-            f"filelock=={filelock_version}",
-            mlflow_extensions,
-        ]
+        default_installs = {
+            "httpx": f"httpx=={httpx_version}",
+            "psutil": f"psutil=={psutil_version}",
+            "filelock": f"filelock=={filelock_version}",
+            "mlflow-extensions": (
+                f"mlflow-extensions=={mlflow_extensions_version}"
+                if mlflow_extensions_version
+                else "mlflow-extensions"
+            ),
+        }
+        final_installs = {}
+        for key, value in default_installs.items():
+            final_installs[key] = value
+        final_installs.update(self.engine_pip_reqs(**kwargs))
+        if self.library_overrides:
+            final_installs.update(self.library_overrides)
+        return list(final_installs.values())
 
     @abc.abstractmethod
-    def engine_pip_reqs(self, **kwargs) -> List[str]:
+    def engine_pip_reqs(self, **kwargs) -> Dict[str, str]:
+        # key should be eggname/packagename and the value should be the full
+        # installation string in requirements.txt
         pass
 
     @abc.abstractmethod

@@ -25,8 +25,8 @@ class MockEngineConfig(EngineConfig):
             self.port,
         ]
 
-    def engine_pip_reqs(self, **kwargs) -> List[str]:
-        return ["uvicorn", "fastapi"]
+    def engine_pip_reqs(self, **kwargs) -> Dict[str, str]:
+        return {"uvicorn": "uvicorn", "fastapi": "fastapi"}
 
     def setup_artifacts(self, local_dir: str = "/root/models") -> Dict[str, str]:
         return {}
