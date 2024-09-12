@@ -1,7 +1,7 @@
 # Contributors 
 _All contributors are listed alphabetically._
 
-* [Forrest](https://www.linkedin.com/in/forrest-murray-4ab3ab4b/)
+* [Forrest Murray](https://www.linkedin.com/in/forrest-murray-4ab3ab4b/)
 * [Nate Flemming](https://www.linkedin.com/in/nate-fleming-61444613/)
 * [Sriharsha Tikkireddy](https://www.linkedin.com/in/sriharsha-tikkireddy/)
 
