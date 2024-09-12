@@ -158,7 +158,7 @@ def initialize_logging(config: LogConfig) -> None:
             event_dict[key] = value
         return event_dict
 
-    structlog.configure_once(
+    structlog.configure(
         processors=[
             structlog.stdlib.add_log_level,
             filter_by_level,
