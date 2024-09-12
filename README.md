@@ -56,6 +56,7 @@ Out of the box Ez Deploy Models:
 | text         | prebuilt.text.vllm.NUEXTRACT_TINY                        | https://huggingface.co/numind/NuExtract-tiny                 | Default          | GPU_SMALL [T4x1 16GB]          | GPU_SMALL [T4x1 16GB]         |
 | text         | prebuilt.text.vllm.NOUS_HERMES_3_LLAMA_3_1_8B_64K        | https://huggingface.co/NousResearch/Hermes-3-Llama-3.1-8B    | 64000            | GPU_LARGE [A100_80Gx1 80GB]    | MULTIGPU_MEDIUM [A10Gx4 96GB] |
 | text         | prebuilt.text.vllm.NOUS_HERMES_3_LLAMA_3_1_8B_128K       | https://huggingface.co/NousResearch/Hermes-3-Llama-3.1-8B    | Default          | GPU_LARGE_2 [A100_80Gx2 160GB] | GPU_MEDIUM_8 [A10Gx8 192GB]   |
+| text         | prebuilt.text.vllm.COHERE_FOR_AYA_23_35B                 | https://huggingface.co/CohereForAI/aya-23-35B                | Default          | GPU_LARGE [A100_80Gx1 80GB]    | MULTIGPU_MEDIUM [A10Gx4 96GB] |
 | vision       | prebuilt.vision.sglang.LLAVA_NEXT_LLAMA3_8B              | https://huggingface.co/lmms-lab/llama3-llava-next-8b         | Default          | GPU_LARGE [A100_80Gx1 80GB]    | MULTIGPU_MEDIUM [A10Gx4 96GB] |
 | vision       | prebuilt.vision.sglang.LLAVA_NEXT_QWEN_1_5_72B_CONFIG    | https://huggingface.co/lmms-lab/llama3-llava-next-8b         | Default          | GPU_LARGE_2 [A100_80Gx2 160GB] | GPU_MEDIUM_8 [A10Gx8 192GB]   |
 | vision       | prebuilt.vision.sglang.LLAVA_ONEVISION_QWEN_2_7B_CONFIG  | https://huggingface.co/lmms-lab/llava-onevision-qwen2-7b-ov  | Default          | GPU_LARGE [A100_80Gx1 80GB]    | MULTIGPU_MEDIUM [A10Gx4 96GB] |
@@ -66,6 +67,8 @@ Out of the box Ez Deploy Models:
 | vision       | prebuilt.vision.vllm.PHI_3_5_VISION_INSTRUCT_32K         | https://huggingface.co/microsoft/Phi-3.5-vision-instruct     | 32000            | GPU_LARGE [A100_80Gx1 80GB]    | MULTIGPU_MEDIUM [A10Gx4 96GB] |
 | vision       | prebuilt.vision.vllm.PHI_3_5_VISION_INSTRUCT_64K         | https://huggingface.co/microsoft/Phi-3.5-vision-instruct     | 64000            | GPU_LARGE [A100_80Gx1 80GB]    | MULTIGPU_MEDIUM [A10Gx4 96GB] |
 | vision       | prebuilt.vision.vllm.PHI_3_5_VISION_INSTRUCT_128K        | https://huggingface.co/microsoft/Phi-3.5-vision-instruct     | Default          | GPU_LARGE_2 [A100_80Gx2 160GB] | GPU_MEDIUM_8 [A10Gx8 192GB]   |
+| vision       | prebuilt.vision.vllm.QWEN2_VL_2B_INSTRUCT                | https://huggingface.co/Qwen/Qwen2-VL-2B-Instruct             | Default          | GPU_LARGE [A100_80Gx1 80GB]    | GPU_MEDIUM [A10Gx1 24GB]      |
+| vision       | prebuilt.vision.vllm.QWEN2_VL_7B_INSTRUCT                | https://huggingface.co/Qwen/Qwen2-VL-7B-Instruct             | Default          | GPU_LARGE [A100_80Gx1 80GB]    | MULTIGPU_MEDIUM [A10Gx4 96GB] |
 | audio        | prebuilt.audio.vllm.FIXIE_ULTRA_VOX_0_4_64K_CONFIG       | https://huggingface.co/fixie-ai/ultravox-v0_4                | 64000            | GPU_LARGE [A100_80Gx1 80GB]    | MULTIGPU_MEDIUM [A10Gx4 96GB] |
 | audio        | prebuilt.audio.vllm.FIXIE_ULTRA_VOX_0_4_128K_CONFIG      | https://huggingface.co/fixie-ai/ultravox-v0_4                | Default          | GPU_LARGE_2 [A100_80Gx2 160GB] | GPU_MEDIUM_8 [A10Gx8 192GB]   |
 
