@@ -124,21 +124,16 @@ def initialize_logging(config: LogConfig) -> None:
     level: LogLevel = LogLevel.to_level(config.level)
     json_formatter: jsonlogger.JsonFormatter = jsonlogger.JsonFormatter()
 
-    class ExcludeStandardLoggerFilter(logging.Filter):
-        def filter(self, record):
-            return not isinstance(record, logging.LogRecord)
-    
     for handler in handlers:
         handler.setFormatter(json_formatter)
         handler.setLevel(level)
-        handler.addFilter(ExcludeStandardLoggerFilter())
-        
+
     logging.shutdown()
     logging.basicConfig(level=level, format="%(message)s", handlers=handlers)
 
     def filter_by_level(logger: Logger, name: str, event_dict: EventDict) -> EventDict:
         event_log_level: LogLevel = LogLevel.from_string(name)
-        if "level" in event_dict and event_log_level >= level:
+        if event_log_level >= level:
             return event_dict
         else:
             raise structlog.DropEvent
@@ -158,10 +153,10 @@ def initialize_logging(config: LogConfig) -> None:
             event_dict[key] = value
         return event_dict
 
-    structlog.configure(
+    structlog.configure_once(
         processors=[
-            structlog.stdlib.add_log_level,
             filter_by_level,
+            structlog.stdlib.add_log_level,
             structlog.stdlib.add_logger_name,
             add_library_version,
             add_additional_vars,
