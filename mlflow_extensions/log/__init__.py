@@ -71,7 +71,9 @@ def get_logger(name: Optional[str] = None) -> Logger:
 
 
 def initialize_logging(
-    level: LogLevel = LogLevel.INFO, handlers: List[logging.Handler] = []
+    level: LogLevel = LogLevel.INFO,
+    handlers: List[logging.Handler] = [],
+    additional_vars: Dict[str, Any] = {},
 ) -> None:
 
     json_formatter: jsonlogger.JsonFormatter = jsonlogger.JsonFormatter()
@@ -114,19 +116,11 @@ def initialize_logging(
         event_dict["ip"] = socket.gethostbyname(socket.gethostname())
         return event_dict
 
-    model_name: str = os.environ.get("LOGGING_MODEL_NAME")
-    endpoint_id: str = os.environ.get("LOGGING_ENDPOINT_ID")
-    run_id: str = os.environ.get("LOGGING_RUN_ID")
-
-    def add_model_info(
+    def add_additional_vars(
         logger: Logger, method_name: str, event_dict: EventDict
     ) -> EventDict:
-        if model_name is not None:
-            event_dict["model"] = model_name
-        if endpoint_id is not None:
-            event_dict["endpoint_id"] = endpoint_id
-        if run_id is not None:
-            event_dict["run_id"] = run_id
+        for key, value in additional_vars.items():
+            event_dict[key] = value
         return event_dict
 
     structlog.configure_once(
@@ -137,7 +131,7 @@ def initialize_logging(
             add_hostname,
             add_ip_address,
             add_library_version,
-            add_model_info,
+            add_additional_vars,
             structlog.stdlib.PositionalArgumentsFormatter(),
             structlog.processors.TimeStamper(fmt="iso"),
             structlog.processors.StackInfoRenderer(),
