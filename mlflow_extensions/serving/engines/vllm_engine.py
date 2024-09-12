@@ -23,7 +23,7 @@ class VLLMEngineConfig(EngineConfig):
     entrypoint_module: str = field(default="vllm.entrypoints.openai.api_server")
     enable_experimental_chunked_prefill: bool = field(default=False)
     max_num_batched_tokens: int = field(
-        default=512
+        default=None
     )  # 512 is based on A100 ITL for llama model
     enable_prefix_caching: bool = field(default=False)
     vllm_command_flags: Dict[str, Optional[str]] = field(default_factory=dict)
@@ -81,6 +81,10 @@ class VLLMEngineConfig(EngineConfig):
                 flags.append(v)
         if self.enable_experimental_chunked_prefill is True:
             flags.append("--enable-chunked-prefill")
+            if self.max_num_batched_tokens is None:
+                flags.append("--max-num-batched-tokens")
+                flags.append("512")
+        if self.max_num_batched_tokens is not None:
             flags.append("--max-num-batched-tokens")
             flags.append(str(self.max_num_batched_tokens))
         if self.enable_prefix_caching is True:
