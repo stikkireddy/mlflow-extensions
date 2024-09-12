@@ -85,6 +85,7 @@ QWEN2_VL_2B_INSTRUCT = EzDeployConfig(
         library_overrides={
             "transformers": "git+https://github.com/huggingface/transformers@21fac7abba2a37fae86106f87fcf9974fd1e3830",
             "accelerate": "accelerate==0.31.0",
+            "vllm": "vllm==0.6.1",
         },
     ),
     serving_config=ServingConfig(
@@ -110,6 +111,7 @@ QWEN2_VL_7B_INSTRUCT = EzDeployConfig(
         library_overrides={
             "transformers": "git+https://github.com/huggingface/transformers@21fac7abba2a37fae86106f87fcf9974fd1e3830",
             "accelerate": "accelerate==0.31.0",
+            "vllm": "vllm==0.6.1",
         },
     ),
     serving_config=ServingConfig(
