@@ -43,6 +43,7 @@ class VLLMEngineConfig(EngineConfig):
     tokenizer_artifact_key: str = field(default="tokenizer")
     tokenizer_config_file: str = field(default="tokenizer_config.json")
     chat_template_key: str = field(default="chat_template")
+    tokenizer_mode: Optional[str] = field(default=None)
 
     def _to_vllm_command(self, context: PythonModelContext = None) -> List[str]:
         local_model_path = None
@@ -62,6 +63,7 @@ class VLLMEngineConfig(EngineConfig):
             "--served-model-name",
             "--guided-decoding-backend",
             "--limit-mm-per-prompt",
+            "--tokenizer-mode",
         ]
 
         # add tensor parallel size flag if we have GPUs
@@ -112,6 +114,9 @@ class VLLMEngineConfig(EngineConfig):
             if self.max_num_audios is not None:
                 values.append(f"audio={self.max_num_audios}")
             flags.append(",".join(values))
+        if self.tokenizer_mode is not None:
+            flags.append("--tokenizer-mode")
+            flags.append(self.tokenizer_mode)
 
         return [
             sys.executable,
@@ -166,11 +171,15 @@ class VLLMEngineConfig(EngineConfig):
             model_dir_path = Path(artifacts[self.model_artifact_key])
         else:
             model_dir_path = Path(artifacts[self.tokenizer_artifact_key])
-        tokenizer_config_file = model_dir_path / self.tokenizer_config_file
-        ensure_chat_template(
-            tokenizer_file=str(tokenizer_config_file),
-            chat_template_key=self.chat_template_key,
-        )
+        if self.tokenizer_mode is not None and self.tokenizer_mode not in [
+            "auto",
+            "slow",
+        ]:
+            tokenizer_config_file = model_dir_path / self.tokenizer_config_file
+            ensure_chat_template(
+                tokenizer_file=str(tokenizer_config_file),
+                chat_template_key=self.chat_template_key,
+            )
 
     def setup_artifacts(self, local_dir: str = "/root/models"):
         artifacts = self._setup_artifacts(local_dir)
