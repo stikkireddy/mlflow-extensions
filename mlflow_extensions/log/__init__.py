@@ -133,7 +133,7 @@ def initialize_logging(config: LogConfig) -> None:
 
     def filter_by_level(logger: Logger, name: str, event_dict: EventDict) -> EventDict:
         event_log_level: LogLevel = LogLevel.from_string(name)
-        if event_log_level >= level:
+        if "level" in event_dict and event_log_level >= level:
             return event_dict
         else:
             raise structlog.DropEvent
@@ -155,8 +155,8 @@ def initialize_logging(config: LogConfig) -> None:
 
     structlog.configure_once(
         processors=[
-            filter_by_level,
             structlog.stdlib.add_log_level,
+            filter_by_level,
             structlog.stdlib.add_logger_name,
             add_library_version,
             add_additional_vars,
