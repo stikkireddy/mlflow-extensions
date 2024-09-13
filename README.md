@@ -27,6 +27,9 @@
 - [Hardware Diagnostics](#hardware-diagnostics)
   - [GPU Diagnostics](#gpu-diagnostics)
 - [Optimizations Roadmap](#optimizations-roadmap)
+- [Developer Guide](#developer-guide)
+    - [Understanding the Architecture](docs/custom_server_architecture.md)
+    - [Testing New Configurations](docs/testing_new_configs.md)
 - [Notice](#notice)
 - [Disclaimer](#disclaimer)
 
