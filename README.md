@@ -1,5 +1,38 @@
 # mlflow extensions
 
+# Table of Contents
+
+- [Overview](#overview)
+- [Features](#features)
+- [Installation](#installation)
+- [Supported Server Frameworks](#supported-server-frameworks)
+- [EZ Deploy](#ez-deploy)
+  - [Deploying a model using EZ Deploy](#deploying-a-model-using-ez-deploy)
+- [Custom Engine Usage](#custom-engine-usage)
+  - [Testing Pyfunc Models](#testing-pyfunc-models)
+  - [Deploying Models using Ollama](#deploying-models-using-ollama)
+    - [Registering a model](#registering-a-model)
+  - [Deploying Models using vLLM](#deploying-models-using-vllm)
+    - [Registering a model](#registering-a-model-1)
+  - [Calling models using openai compatible clients](#calling-models-using-openai-compatible-clients)
+    - [Calling a model using openai sdk with basic completion](#calling-a-model-using-openai-sdk-with-basic-completion)
+    - [Calling a model using openai sdk that supports multi modal inputs (vision)](#calling-a-model-using-openai-sdk-that-supports-multi-modal-inputs-vision)
+    - [Guided decoding into json](#guided-decoding-into-json)
+    - [Calling a model using langchain ChatOpenAI sdk](#calling-a-model-using-langchain-chatopenai-sdk)
+    - [Calling a model using sglang sdk using the openai backend](#calling-a-model-using-sglang-sdk-using-the-openai-backend)
+    - [Calling a model using sglang sdk using the sglang built-in backend](#calling-a-model-using-sglang-sdk-using-the-sglang-built-in-backend)
+  - [Supported engines](#supported-engines)
+    - [vLLM engine](#vllm-engine)
+    - [Ollama engine](#ollama-engine)
+- [Hardware Diagnostics](#hardware-diagnostics)
+  - [GPU Diagnostics](#gpu-diagnostics)
+- [Optimizations Roadmap](#optimizations-roadmap)
+- [Developer Guide](#developer-guide)
+    - [Understanding the Architecture](docs/custom_server_architecture.md)
+    - [Testing New Configurations](docs/testing_new_configs.md)
+- [Notice](#notice)
+- [Disclaimer](#disclaimer)
+
 ## Overview
 
 
@@ -22,12 +55,6 @@ a simple three-step process.
 ```bash
 pip install mlflow-extensions
 ```
-
-## Notice
-
-This project is in active development and apis may change and break. Please use the package with this in mind. We will 
-try to keep the changes to a minimum and provide a migration guide when we do make breaking changes. We will 
-provide a stable api once we have good test coverage and are ready to upgrade to a 1.0.0 release.
 
 ## Supported Server Frameworks
 
@@ -435,6 +462,22 @@ TBD
 2. Speculative Decoding Enablement [ngram based] for ez deploy based on task type (some flag like data extraction)
 3. Quantized Models curated from huggingface
 4. Quantized KV Cache support
+
+## Developer Guide
+
+Take a look at the following documents to understand the architecture and how to contribute to the project.
+* [Testing New Configs](docs/testing_new_configs.md): Goes over how to create new models, etc
+* [Custom Server Architecture](docs/custom_server_architecture.md): Goes over the architecture of how the models 
+are deployed.
+* Code structure: TBD
+* CONTRIBUTING.md: TBD
+
+## Notice
+
+This project is in active development and apis may change and break. Please use the package with this in mind. We will 
+try to keep the changes to a minimum and provide a migration guide when we do make breaking changes. We will 
+provide a stable api once we have good test coverage and are ready to upgrade to a 1.0.0 release.
+
 
 ## Disclaimer
 mlflow-extensions is not developed, endorsed not supported by Databricks. It is provided as-is; no warranty is derived from using this package. 
