@@ -149,6 +149,10 @@ class SizeAndTimedRotatingVolumeHandler(TimedRotatingFileHandler):
             max_bytes = max(1024, max_bytes)
         self._max_bytes = max_bytes
 
+        parent: Path = Path(filename).parent
+        if not parent.exists():
+            parent.mkdir(parents=True, exist_ok=True)
+
         TimedRotatingFileHandler.__init__(
             self,
             filename,

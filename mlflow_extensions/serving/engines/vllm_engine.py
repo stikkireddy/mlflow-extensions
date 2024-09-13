@@ -242,7 +242,7 @@ class VLLMEngineProcess(EngineProcess):
             resp = self.server_http_client.get("/health")
             return resp.status_code == 200
         except Exception as e:
-            LOGGER.info(
+            LOGGER.error(
                 f"Health check failed with error {e}; server may not be up yet or crashed;"
             )
             return False

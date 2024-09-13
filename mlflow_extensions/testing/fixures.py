@@ -176,7 +176,7 @@ class LocalTestServer:
                     LOGGER.info("Success")
                     break
             except Exception as e:
-                LOGGER.info(
+                LOGGER.warning(
                     f"[HEALTH_CHECK] endpoint not yet available; health check error {str(e)}"
                 )
 

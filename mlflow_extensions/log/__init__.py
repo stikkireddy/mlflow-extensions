@@ -111,13 +111,17 @@ def initialize_logging(config: LogConfig) -> None:
 
     stdout_handler: logging.Handler = logging.StreamHandler(sys.stdout)
     handlers: List[logging.Handler] = [stdout_handler]
-    
+
     if config.filename is not None:
         volume_handler: logging.Handler = rotating_volume_handler(
             filename=config.filename,
             archive_path=config.archive_path,
             max_bytes=config.max_bytes,
             backup_count=config.backup_count,
+            databricks_host=config.databricks_host,
+            databricks_token=config.databricks_token,
+            when=config.when,
+            interval=config.interval,
         )
         handlers.append(volume_handler)
 
