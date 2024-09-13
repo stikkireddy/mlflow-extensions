@@ -64,8 +64,8 @@ class LogConfig:
     archive_path: Optional[str] = None
     databricks_host: Optional[str] = None
     databricks_token: Optional[str] = None
-    when: str = "h"
-    interval: int = 1
+    when: str = "m"
+    interval: int = 5
     max_bytes: int = DEFAULT_MAX_BYTES
     backup_count: int = DEFAULT_BACKUP_COUNT
     encoding: Optional[str] = None
