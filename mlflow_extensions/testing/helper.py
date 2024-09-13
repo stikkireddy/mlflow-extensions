@@ -6,7 +6,9 @@ from enum import Enum
 
 import psutil
 
-from mlflow_extensions.serving.engines.base import debug_msg
+from mlflow_extensions.log import Logger, get_logger
+
+LOGGER: Logger = get_logger()
 
 
 class Modality(Enum):
@@ -71,7 +73,7 @@ def get_process_ids(search_string):
         for line in result.stdout.splitlines():
             if search_string in line:
                 # Extract PID (assumed to be in the second column)
-                debug_msg(f"Found orphaned process: {line} matching {search_string}")
+                LOGGER.info(f"Found orphaned process: {line} matching {search_string}")
                 parts = line.split()
                 if len(parts) > 1 and parts[1].isdigit():
                     pids.append(parts[1])

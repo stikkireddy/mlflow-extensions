@@ -5,17 +5,15 @@ from typing import Dict, List, Optional, Union
 
 from mlflow.pyfunc import PythonModelContext
 
+from mlflow_extensions.log import Logger, get_logger
 from mlflow_extensions.serving.engines import gpu_utils
-from mlflow_extensions.serving.engines.base import (
-    Command,
-    EngineConfig,
-    EngineProcess,
-    debug_msg,
-)
+from mlflow_extensions.serving.engines.base import Command, EngineConfig, EngineProcess
 from mlflow_extensions.serving.engines.huggingface_utils import (
     ensure_chat_template,
     snapshot_download_local,
 )
+
+LOGGER: Logger = get_logger()
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -74,7 +72,7 @@ class VLLMEngineConfig(EngineConfig):
 
         for k, v in self.vllm_command_flags.items():
             if k in skip_flags:
-                debug_msg(f"Skipping flag {k} use the built in argument")
+                LOGGER.info(f"Skipping flag {k} use the built in argument")
                 continue
             flags.append(k)
             if v is not None:
@@ -261,7 +259,7 @@ class VLLMEngineProcess(EngineProcess):
             resp = self.server_http_client.get("/health")
             return resp.status_code == 200
         except Exception as e:
-            debug_msg(
+            LOGGER.error(
                 f"Health check failed with error {e}; server may not be up yet or crashed;"
             )
             return False

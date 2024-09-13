@@ -1,9 +1,11 @@
 import json
+import re
 from dataclasses import asdict, dataclass, field
+from pathlib import Path
 from typing import List, Literal, Optional, Type
 
 from databricks.sdk import WorkspaceClient
-from databricks.sdk.errors import ResourceDoesNotExist
+from databricks.sdk.errors import NotFound, ResourceDoesNotExist
 from databricks.sdk.service.serving import EndpointCoreConfigInput, ServedEntityInput
 
 from mlflow_extensions.databricks.deploy.gpu_configs import (
@@ -11,9 +13,12 @@ from mlflow_extensions.databricks.deploy.gpu_configs import (
     Cloud,
     GPUConfig,
 )
+from mlflow_extensions.log import LogConfig
 from mlflow_extensions.serving.engines.base import EngineConfig, EngineProcess
 from mlflow_extensions.serving.wrapper import (
+    ARCHIVE_LOG_PATH_KEY,
     ENABLE_DIAGNOSTICS_FLAG,
+    LOG_FILE_KEY,
     CustomServingEnginePyfuncWrapper,
 )
 
@@ -133,6 +138,23 @@ class EzDeploy:
         except ResourceDoesNotExist:
             return False
 
+    def _throw_if_volume_does_not_exist(self, path: str) -> None:
+        def _path_to_volume(path: str) -> str:
+            pattern: str = r"^(?:dbfs:)?/Volumes/([^/]+)/([^/]+)/([^/]+)/?.*"
+            match: re.Match = re.match(pattern, path)
+            if match:
+                catalog: str = match.group(1)
+                schema: str = match.group(2)
+                volume: str = match.group(3)
+                return f"{catalog}.{schema}.{volume}"
+            raise ValueError(f"Invalid path {path}")
+
+        try:
+            volume: str = _path_to_volume(path)
+            self._client.volumes.read(volume)
+        except NotFound:
+            raise ValueError(f"Volume {volume} does not exist")
+
     def deploy(
         self,
         name,
@@ -141,6 +163,7 @@ class EzDeploy:
         workload_size: Literal["Small", "Medium", "Large"] = "Small",
         workload_type: Optional[str] = None,
         enable_diagnostics: bool = False,
+        log_config: Optional[LogConfig] = None,
     ):
         gpu_cfg = self._config.serving_config.smallest_gpu(self._cloud)
         endpoint_exists = self._does_endpoint_exist(name)
@@ -159,6 +182,18 @@ class EzDeploy:
         environment_vars = {}
         if enable_diagnostics is True:
             environment_vars[ENABLE_DIAGNOSTICS_FLAG] = "true"
+        if log_config is not None:
+            log_file: str = log_config.filename or f"{name}.log"
+            environment_vars[LOG_FILE_KEY] = log_file
+            if log_config.archive_path is not None:
+                self._throw_if_volume_does_not_exist(log_config.archive_path)
+                archive_log_path: Path = Path(log_config.archive_path)
+                archive_log_path = (
+                    archive_log_path
+                    if archive_log_path.name == name
+                    else archive_log_path / name
+                )
+                environment_vars[ARCHIVE_LOG_PATH_KEY] = archive_log_path.as_posix()
         if endpoint_exists is False:
             self._client.serving_endpoints.create(
                 name=name,

@@ -1,6 +1,10 @@
+databricks-sdk
+filelock
 httpx
 huggingface-hub
-filelock
 mlflow-skinny[databricks]>=2.16.0
 psutil
-databricks-sdk
+python-json-logger
+structlog
+tenacity
+
