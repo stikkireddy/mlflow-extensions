@@ -67,13 +67,15 @@ class CustomServingEnginePyfuncWrapper(mlflow.pyfunc.PythonModel):
             yield ResponseMessageV1.deserialize(prediction)
 
     def load_context(self, context: PythonModelContext):
-        if self._engine is None:
-            self._engine = self._engine_klass(config=self._engine_config)
         log_config: LogConfig = LogConfig(
             filename=os.environ.get(LOG_FILE_KEY, "serving.log"),
             archive_path=os.environ.get(ARCHIVE_LOG_PATH_KEY),
         )
         initialize_logging(log_config)
+
+        if self._engine is None:
+            self._engine = self._engine_klass(config=self._engine_config)
+
         self._engine.start_proc(context)
 
     def predict(

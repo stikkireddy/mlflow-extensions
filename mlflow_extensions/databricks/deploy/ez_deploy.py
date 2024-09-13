@@ -1,10 +1,11 @@
 import json
+import re
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import List, Literal, Optional, Type
 
 from databricks.sdk import WorkspaceClient
-from databricks.sdk.errors import ResourceDoesNotExist
+from databricks.sdk.errors import NotFound, ResourceDoesNotExist
 from databricks.sdk.service.serving import EndpointCoreConfigInput, ServedEntityInput
 
 from mlflow_extensions.databricks.deploy.gpu_configs import (
@@ -137,6 +138,23 @@ class EzDeploy:
         except ResourceDoesNotExist:
             return False
 
+    def _throw_if_volume_does_not_exist(self, path: str) -> None:
+        def _path_to_volume(path: str) -> str:
+            pattern: str = r"^(?:dbfs:)?/Volumes/([^/]+)/([^/]+)/([^/]+)/?.*"
+            match: re.Match = re.match(pattern, path)
+            if match:
+                catalog: str = match.group(1)
+                schema: str = match.group(2)
+                volume: str = match.group(3)
+                return f"{catalog}.{schema}.{volume}"
+            raise ValueError(f"Invalid path {path}")
+
+        try:
+            volume: str = _path_to_volume(path)
+            self._client.volumes.read(volume)
+        except NotFound:
+            raise ValueError(f"Volume {volume} does not exist")
+
     def deploy(
         self,
         name,
@@ -168,6 +186,7 @@ class EzDeploy:
             log_file: str = log_config.filename or f"{name}.log"
             environment_vars[LOG_FILE_KEY] = log_file
             if log_config.archive_path is not None:
+                self._throw_if_volume_does_not_exist(log_config.archive_path)
                 archive_log_path: Path = Path(log_config.archive_path)
                 archive_log_path = (
                     archive_log_path

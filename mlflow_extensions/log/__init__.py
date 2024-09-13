@@ -142,14 +142,6 @@ def initialize_logging(config: LogConfig) -> None:
         else:
             raise structlog.DropEvent
 
-    version: str = get_mlflow_extensions_version()
-
-    def add_library_version(
-        logger: Logger, method_name: str, event_dict: EventDict
-    ) -> EventDict:
-        event_dict["version"] = version
-        return event_dict
-
     def add_additional_vars(
         logger: Logger, method_name: str, event_dict: EventDict
     ) -> EventDict:
@@ -162,7 +154,6 @@ def initialize_logging(config: LogConfig) -> None:
             filter_by_level,
             structlog.stdlib.add_log_level,
             structlog.stdlib.add_logger_name,
-            add_library_version,
             add_additional_vars,
             structlog.stdlib.PositionalArgumentsFormatter(),
             structlog.processors.TimeStamper(fmt="iso"),
