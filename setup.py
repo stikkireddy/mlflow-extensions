@@ -15,7 +15,7 @@ setup(
     long_description_content_type="text/markdown",
     url="https://github.com/stikkireddy/mlflow-extensions",
     packages=find_packages(),
-    install_requires=["httpx", "huggingface-hub", "filelock", "mlflow-skinny[databricks]", "psutil", "databricks-sdk"],
+    install_requires=install_requires,
     setup_requires=["setuptools_scm"],
     use_scm_version=True,
     classifiers=[
