@@ -125,8 +125,8 @@ class OllamaEngineConfig(EngineConfig):
         )
         return Command(name="ollama-serve", command=[bin_path, "serve"], env=new_env)
 
-    def engine_pip_reqs(self, **kwargs) -> List[str]:
-        return []
+    def engine_pip_reqs(self, **kwargs) -> Dict[str, str]:
+        return {}
 
     def supported_model_architectures(self) -> List[str]:
         return []

@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Iterator, List, Literal, Optional, Type
 
 import mlflow
+import numpy as np
 import pandas as pd
 from httpx import Request, Response
 from mlflow.pyfunc import PythonModelContext
@@ -81,8 +82,6 @@ class CustomServingEnginePyfuncWrapper(mlflow.pyfunc.PythonModel):
     def predict(
         self, context, model_input: List[List[str]], params=None
     ) -> List[List[str]]:
-        import numpy as np
-
         if not isinstance(model_input, (list, dict, np.ndarray, pd.DataFrame)):
             raise ValueError(
                 f"model_input must be a list, dict, numpy array, or dataframe but received: {type(model_input)}"
@@ -112,7 +111,7 @@ class CustomServingEnginePyfuncWrapper(mlflow.pyfunc.PythonModel):
                     compute_details = get_compute_details(cmd_key="all")
                 compute_details.update(
                     {
-                        "command": self._engine_config.to_run_command(self.context),
+                        "command": self._engine_config.to_run_command(context),
                     }
                 )
                 responses.append(json.dumps(compute_details))

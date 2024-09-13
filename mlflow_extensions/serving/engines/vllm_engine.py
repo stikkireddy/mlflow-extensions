@@ -21,7 +21,7 @@ class VLLMEngineConfig(EngineConfig):
     entrypoint_module: str = field(default="vllm.entrypoints.openai.api_server")
     enable_experimental_chunked_prefill: bool = field(default=False)
     max_num_batched_tokens: int = field(
-        default=512
+        default=None
     )  # 512 is based on A100 ITL for llama model
     enable_prefix_caching: bool = field(default=False)
     vllm_command_flags: Dict[str, Optional[str]] = field(default_factory=dict)
@@ -41,6 +41,7 @@ class VLLMEngineConfig(EngineConfig):
     tokenizer_artifact_key: str = field(default="tokenizer")
     tokenizer_config_file: str = field(default="tokenizer_config.json")
     chat_template_key: str = field(default="chat_template")
+    tokenizer_mode: Optional[str] = field(default=None)
 
     def _to_vllm_command(self, context: PythonModelContext = None) -> List[str]:
         local_model_path = None
@@ -60,6 +61,7 @@ class VLLMEngineConfig(EngineConfig):
             "--served-model-name",
             "--guided-decoding-backend",
             "--limit-mm-per-prompt",
+            "--tokenizer-mode",
         ]
 
         # add tensor parallel size flag if we have GPUs
@@ -77,6 +79,10 @@ class VLLMEngineConfig(EngineConfig):
                 flags.append(v)
         if self.enable_experimental_chunked_prefill is True:
             flags.append("--enable-chunked-prefill")
+            if self.max_num_batched_tokens is None:
+                flags.append("--max-num-batched-tokens")
+                flags.append("512")
+        if self.max_num_batched_tokens is not None:
             flags.append("--max-num-batched-tokens")
             flags.append(str(self.max_num_batched_tokens))
         if self.enable_prefix_caching is True:
@@ -110,6 +116,9 @@ class VLLMEngineConfig(EngineConfig):
             if self.max_num_audios is not None:
                 values.append(f"audio={self.max_num_audios}")
             flags.append(",".join(values))
+        if self.tokenizer_mode is not None:
+            flags.append("--tokenizer-mode")
+            flags.append(self.tokenizer_mode)
 
         return [
             sys.executable,
@@ -137,12 +146,16 @@ class VLLMEngineConfig(EngineConfig):
         vllm_version: str = "0.6.0",
         lm_format_enforcer_version: str = "0.10.6",
         outlines_version: str = "0.0.46",
-    ) -> List[str]:
-        default_installs = [f"vllm=={vllm_version}"]
+    ) -> Dict[str, str]:
+        default_installs = {
+            "vllm": f"vllm=={vllm_version}",
+        }
         if self.guided_decoding_backend == "lm-format-enforcer":
-            default_installs.append(f"lm-format-enforcer=={lm_format_enforcer_version}")
+            default_installs["lm-format-enforcer"] = (
+                f"lm-format-enforcer=={lm_format_enforcer_version}"
+            )
         if self.guided_decoding_backend == "outlines":
-            default_installs.append(f"outlines=={outlines_version}")
+            default_installs["outlines"] = f"outlines=={outlines_version}"
         return default_installs
 
     def _setup_snapshot(self, local_dir: str = "/root/models"):
@@ -164,11 +177,15 @@ class VLLMEngineConfig(EngineConfig):
             model_dir_path = Path(artifacts[self.model_artifact_key])
         else:
             model_dir_path = Path(artifacts[self.tokenizer_artifact_key])
-        tokenizer_config_file = model_dir_path / self.tokenizer_config_file
-        ensure_chat_template(
-            tokenizer_file=str(tokenizer_config_file),
-            chat_template_key=self.chat_template_key,
-        )
+        if self.tokenizer_mode is not None and self.tokenizer_mode in [
+            "auto",
+            "slow",
+        ]:
+            tokenizer_config_file = model_dir_path / self.tokenizer_config_file
+            ensure_chat_template(
+                tokenizer_file=str(tokenizer_config_file),
+                chat_template_key=self.chat_template_key,
+            )
 
     def setup_artifacts(self, local_dir: str = "/root/models"):
         artifacts = self._setup_artifacts(local_dir)
