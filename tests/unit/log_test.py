@@ -2,7 +2,7 @@ import logging
 import os
 import sys
 from typing import Callable, List
-
+import logging
 import pytest
 import structlog
 
@@ -33,6 +33,16 @@ def test_intialize_logging_with_defaults() -> None:
     initialize_logging(LogConfig(filename="test.log"))
     assert structlog.is_configured()
 
+def test_get_basic_logger_should_be_filtered() -> None:
+    initialize_logging(
+        LogConfig(
+            level=LogLevel.DEBUG,
+            filename="/tmp/test.log",
+        )
+    )
+    logger: Logger = logging.getLogger()
+    logger.info("This is the message")
+    
 
 def test_get_logger_should_return_default_log_level_and_name() -> None:
     initialize_logging(
@@ -44,6 +54,7 @@ def test_get_logger_should_return_default_log_level_and_name() -> None:
     )
     logger: Logger = get_logger()
     logger.info("This is the message", foo="bar", baz="qux")
+    
 
 
 def test_get_logger_should_return_default_log_level_and_name_no_volume() -> None:

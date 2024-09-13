@@ -30,12 +30,12 @@ class CustomEngineServingResponse:
     data: dict
 
 
-DIAGNOSTICS_REQUEST_KEY: str = Literal["COMPUTE_DIAGNOSTICS"]
-ENABLE_DIAGNOSTICS_FLAG: str = Literal["ENABLE_DIAGNOSTICS"]
+DIAGNOSTICS_REQUEST_KEY: str = "COMPUTE_DIAGNOSTICS"
+ENABLE_DIAGNOSTICS_FLAG: str ="ENABLE_DIAGNOSTICS"
 
-LOG_LEVEL: str = Literal["LOG_LEVEL"]
-LOG_FILE_KEY: str = Literal["LOG_FILE"]
-ARCHIVE_LOG_PATH_KEY: str = Literal["ARCHIVE_LOG_PATH"]
+LOG_LEVEL: str = "LOG_LEVEL"
+LOG_FILE_KEY: str = "LOG_FILE"
+ARCHIVE_LOG_PATH_KEY: str = "ARCHIVE_LOG_PATH"
 
 
 class CustomServingEnginePyfuncWrapper(mlflow.pyfunc.PythonModel):
