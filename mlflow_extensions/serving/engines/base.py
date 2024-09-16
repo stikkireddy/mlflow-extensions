@@ -195,32 +195,40 @@ class EngineHealthCheckStatusManager:
         self,
         health_check_path: str = "~/.mlflow-extensions/health-check.txt",
         availability_path: str = "~/.mlflow-extensions/availability.txt",
+        heartbeat_path: str = "~/.mlflow-extensions/heartbeat.txt",
     ):
-        self._relative_path = Path(health_check_path)
+        self._health_check_relative_path = Path(health_check_path)
         self._availability_relative_path = Path(availability_path)
-        self._path = self._relative_path.expanduser().resolve()
+        self._heartbeat_relative_path = Path(heartbeat_path)
+        self._health_check_path = (
+            self._health_check_relative_path.expanduser().resolve()
+        )
         self._availability_path = (
             self._availability_relative_path.expanduser().resolve()
         )
+        self._heartbeat_path = self._heartbeat_relative_path.expanduser().resolve()
         self._ensure_file_exists()
 
     def _ensure_file_exists(self):
         # ensure parent directories
-        self._path.parent.mkdir(parents=True, exist_ok=True)
+        self._health_check_path.parent.mkdir(parents=True, exist_ok=True)
         self._availability_path.parent.mkdir(parents=True, exist_ok=True)
-        if not self._path.exists():
-            self._path.touch()
+        self._heartbeat_path.parent.mkdir(parents=True, exist_ok=True)
+        if not self._health_check_path.exists():
+            self._health_check_path.touch()
         if not self._availability_path.exists():
             self._availability_path.touch()
+        if not self._heartbeat_path.exists():
+            self._heartbeat_path.touch()
 
     def start_empty(self):
-        with open(self._path, "w") as f:
+        with open(self._health_check_path, "w") as f:
             f.write("")
 
     def add_status(self, status: str):
         status = {"datetime_utc": str(datetime.now()), "status": status}
         json_status = json.dumps(status)
-        with open(self._path, "a") as f:
+        with open(self._health_check_path, "a") as f:
             f.write(f"{json_status}\n")
 
     def set_available(self):
@@ -235,8 +243,16 @@ class EngineHealthCheckStatusManager:
         with open(self._availability_path, "r") as f:
             return f.read()
 
+    def get_last_heartbeat(self):
+        with open(self._heartbeat_path, "r") as f:
+            return f.read()
+
+    def set_heartbeat(self):
+        with open(self._heartbeat_path, "w") as f:
+            f.write(str(datetime.now()))
+
     def get_last_n_status(self, n: int = 100) -> List[Dict[str, str]]:
-        with open(self._path, "r") as f:
+        with open(self._health_check_path, "r") as f:
             lines = f.readlines()
         if len(lines) < n:
             return [json.loads(line) for line in lines]
@@ -352,6 +368,8 @@ class EngineProcess(abc.ABC):
         # check if pid is still running
         self._health_check_status_file.start_empty()
         while True:
+            # let's set heartbeat before processing anything
+            self._health_check_status_file.set_heartbeat()
             if attempt_count > max_respawn_attempts:
                 debug_msg(
                     f"Max respawn attempts reached for {self.engine_name}. Restart serving endpoint."
@@ -424,10 +442,13 @@ class EngineProcess(abc.ABC):
     def health_check_status(self):
         return {
             "status": self._health_check_status_file.get_availability(),
-            "health_check_thread_running": self._run_health_check,
+            "worker_pid": os.getpid(),
+            "engine_name": self.engine_name,
+            "health_check_last_heartbeat": self._health_check_status_file.get_last_heartbeat(),
             "health_check_thread_last_50_status": self._health_check_status_file.get_last_n_status(
                 50
             ),
+            "note": "heartbeat is updated at a frequency but can pause when server is being respawned",
         }
 
     # todo add local lora paths

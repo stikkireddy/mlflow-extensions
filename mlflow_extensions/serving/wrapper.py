@@ -49,7 +49,9 @@ class CustomServingEnginePyfuncWrapper(mlflow.pyfunc.PythonModel):
         return self._artifacts
 
     def _request_model(self, req: Request):
-        response = self._engine.oai_http_client.send(req)
+        # deserializer takes care of identifying whether oai client is needed or standard server client
+        # so directly send to the root of the server
+        response = self._engine.server_http_client.send(req)
         return MlflowPyfuncHttpxSerializer.serialize_response(response)
 
     @staticmethod
