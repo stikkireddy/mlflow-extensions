@@ -6,18 +6,16 @@ from typing import Dict, List, Optional, Union
 
 from mlflow.pyfunc import PythonModelContext
 
+from mlflow_extensions.log import Logger, get_logger
 from mlflow_extensions.serving.engines import gpu_utils
-from mlflow_extensions.serving.engines.base import (
-    Command,
-    EngineConfig,
-    EngineProcess,
-    debug_msg,
-)
+from mlflow_extensions.serving.engines.base import Command, EngineConfig, EngineProcess
 from mlflow_extensions.serving.engines.huggingface_utils import (
     ensure_chat_template,
     snapshot_download_local,
 )
 from mlflow_extensions.testing.helper import kill_processes_containing
+
+LOGGER: Logger = get_logger()
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -72,7 +70,7 @@ class SglangEngineConfig(EngineConfig):
         ]
         for k, v in self.sglang_command_flags.items():
             if k in skip_flags:
-                debug_msg(f"Skipping flag {k} use the built in argument")
+                LOGGER.info(f"Skipping flag {k} use the built in argument")
                 continue
             flags.append(k)
             if v is not None:
@@ -218,7 +216,7 @@ class SglangEngineProcess(EngineProcess):
             resp = self.server_http_client.get("/health")
             return resp.status_code == 200
         except Exception as e:
-            debug_msg(
+            LOGGER.info(
                 f"Health check failed with error {e}; server may not be up yet or crashed;"
             )
             return False
