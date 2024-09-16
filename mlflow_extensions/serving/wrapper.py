@@ -90,9 +90,7 @@ class CustomServingEnginePyfuncWrapper(mlflow.pyfunc.PythonModel):
         default_home_path = "~/.mlflow-extensions/logs/serving.log"
         resolved_path = os.path.expanduser(default_home_path)
         log_config: LogConfig = LogConfig(
-            filename=os.environ.get(
-                LOG_FILE_KEY, str(resolved_path)
-            ),
+            filename=os.environ.get(LOG_FILE_KEY, str(resolved_path)),
             archive_path=os.environ.get(ARCHIVE_LOG_PATH_KEY),
         )
         initialize_logging(log_config)
