@@ -87,9 +87,11 @@ class CustomServingEnginePyfuncWrapper(mlflow.pyfunc.PythonModel):
             yield ResponseMessageV1.deserialize(prediction)
 
     def load_context(self, context: PythonModelContext):
+        default_home_path = "~/.mlflow-extensions/logs/serving.log"
+        resolved_path = os.path.expanduser(default_home_path)
         log_config: LogConfig = LogConfig(
             filename=os.environ.get(
-                LOG_FILE_KEY, "~/.mlflow-extensions/logs/serving.log"
+                LOG_FILE_KEY, str(resolved_path)
             ),
             archive_path=os.environ.get(ARCHIVE_LOG_PATH_KEY),
         )
