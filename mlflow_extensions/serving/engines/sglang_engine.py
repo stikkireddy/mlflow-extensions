@@ -231,6 +231,8 @@ class SglangEngineProcess(EngineProcess):
 
         try:
             kill_processes_containing("sglang")
+            # sglang uses vllm under the hood and may spawn vllm proc
+            kill_processes_containing("vllm")
             kill_processes_containing("ray")
             kill_processes_containing("from multiprocessing")
         except Exception:
