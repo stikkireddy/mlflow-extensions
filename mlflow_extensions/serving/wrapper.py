@@ -14,7 +14,10 @@ from mlflow_extensions.log import LogConfig, Logger, get_logger, initialize_logg
 from mlflow_extensions.serving.compute_details import get_compute_details
 from mlflow_extensions.serving.engines.base import EngineConfig, EngineProcess
 from mlflow_extensions.serving.serde import ResponseMessageV1
-from mlflow_extensions.serving.serde_v2 import MlflowPyfuncHttpxSerializer
+from mlflow_extensions.serving.serde_v2 import (
+    MlflowPyfuncHttpxSerializer,
+    make_error_response,
+)
 
 LOGGER: Logger = get_logger()
 
@@ -54,7 +57,26 @@ class CustomServingEnginePyfuncWrapper(mlflow.pyfunc.PythonModel):
     def _request_model(self, req: Request):
         # deserializer takes care of identifying whether oai client is needed or standard server client
         # so directly send to the root of the server
-        response = self._engine.server_http_client.send(req)
+        try:
+            response = self._engine.server_http_client.send(req)
+        except Exception as e:
+            LOGGER.error(
+                f"Error in request: {req}, server_status: {self._engine.health_check_status()},"
+                f" error: {str(e)}"
+            )
+            return MlflowPyfuncHttpxSerializer.serialize_response(
+                make_error_response(
+                    original_request=req,
+                    error_message=str(e),
+                    error_type=str(type(e)),
+                    error_details={
+                        "server_status": self._engine.health_check_status(),
+                        "nvidia-smi": get_compute_details(cmd_key="nvidia-smi"),
+                        "active-procs": get_compute_details(cmd_key="active-procs"),
+                        "command": self._engine_config.to_run_command(),
+                    },
+                )
+            )
         return MlflowPyfuncHttpxSerializer.serialize_response(response)
 
     @staticmethod
@@ -66,7 +88,9 @@ class CustomServingEnginePyfuncWrapper(mlflow.pyfunc.PythonModel):
 
     def load_context(self, context: PythonModelContext):
         log_config: LogConfig = LogConfig(
-            filename=os.environ.get(LOG_FILE_KEY, "serving.log"),
+            filename=os.environ.get(
+                LOG_FILE_KEY, "~/.mlflow-extensions/logs/serving.log"
+            ),
             archive_path=os.environ.get(ARCHIVE_LOG_PATH_KEY),
         )
         initialize_logging(log_config)

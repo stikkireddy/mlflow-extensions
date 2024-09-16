@@ -385,7 +385,7 @@ class EngineProcess(abc.ABC):
             # let's set heartbeat before processing anything
             self._health_check_status_file.set_heartbeat()
             if attempt_count > max_respawn_attempts:
-                LOGGER.debug(
+                LOGGER.info(
                     f"Max respawn attempts reached for {self.engine_name}. Restart serving endpoint."
                 )
                 self._health_check_status_file.add_status(
@@ -398,6 +398,7 @@ class EngineProcess(abc.ABC):
                 if self._is_process_running():
                     time.sleep(health_check_frequency_seconds)
                 else:
+                    LOGGER.info(f"Process: {self._proc.pid} is not running.")
                     self._health_check_status_file.set_unavailable()
                     self._health_check_status_file.add_status("Process is not running.")
                     process = psutil.Process(self._proc.pid)
@@ -409,10 +410,12 @@ class EngineProcess(abc.ABC):
                             "Process is a zombie. Killing process."
                         )
                         self._kill_active_proc()
+                    LOGGER.info(f"Calling cleanup for {self.engine_name}")
                     self._health_check_status_file.add_status(
                         "Process is not running. Calling cleanup."
                     )
                     self.cleanup()
+                    LOGGER.info(f"Respawning {self.engine_name}")
                     self._health_check_status_file.add_status(
                         "Process is not running. Respawning."
                     )
@@ -425,32 +428,37 @@ class EngineProcess(abc.ABC):
                             "Health check failed after respawn. "
                             f"Attempt: {attempt_count}"
                         )
-                        LOGGER.info(f"Health check failed after respawn.")
+                        LOGGER.error(f"Health check failed after respawn.")
                         attempt_count += 1
                     else:
+                        LOGGER.info(f"Health check passed after respawn.")
                         self._health_check_status_file.add_status(
                             "Health check passed after respawn."
                         )
                         self._health_check_status_file.set_available()
                         attempt_count = 0
             except psutil.NoSuchProcess:
+                LOGGER.info(f"Process: {self._proc.pid} does not exist.")
                 self._health_check_status_file.add_status(
                     "Process does not exist. Respawning."
                 )
+                LOGGER.info(f"Respawning {self.engine_name}")
                 self._spawn_server_proc(context)
+                LOGGER.info(f"Spawn Server Proc Finished.")
                 self._health_check_status_file.add_status("Spawn Server Proc Finished.")
                 if self.health_check() is False:
                     self._health_check_status_file.add_status(
                         "Health check failed after respawn. "
                         f"Attempt: {attempt_count}"
                     )
-                    LOGGER.error(f"Health check failed after respawn.")
+                    LOGGER.error("Health check failed after respawn.")
                     attempt_count += 1
                 else:
                     self._health_check_status_file.set_available()
                     self._health_check_status_file.add_status(
                         "Health check passed after respawn."
                     )
+                    LOGGER.info("Health check passed after respawn.")
                     attempt_count = 0
 
     def health_check_status(self):
@@ -472,9 +480,9 @@ class EngineProcess(abc.ABC):
     ):
         # kill process in port if already running
         time.sleep(random.randint(1, 5))
-        LOGGER.debug(f"Attempting to acquire Lock")
+        LOGGER.info(f"Attempting to acquire Lock")
         with self._lock:
-            LOGGER.debug(f"Acquired Lock")
+            LOGGER.info(f"Acquired Lock")
             if self.health_check() is False:
                 self._health_check_status_file.set_unavailable()
                 self._spawn_server_proc(context)
@@ -490,4 +498,4 @@ class EngineProcess(abc.ABC):
                     if self._health_check_thread is not None:
                         self._health_check_thread.start()
             else:
-                LOGGER.debug(f"{self.engine_name} already running")
+                LOGGER.info(f"{self.engine_name} already running")
