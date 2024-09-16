@@ -191,16 +191,27 @@ class EngineConfig(abc.ABC):
 
 class EngineHealthCheckStatusManager:
 
-    def __init__(self, path: str = "~/.mlflow-extensions/health-check.txt"):
-        self._relative_path = Path(path)
+    def __init__(
+        self,
+        health_check_path: str = "~/.mlflow-extensions/health-check.txt",
+        availability_path: str = "~/.mlflow-extensions/availability.txt",
+    ):
+        self._relative_path = Path(health_check_path)
+        self._availability_relative_path = Path(availability_path)
         self._path = self._relative_path.expanduser().resolve()
+        self._availability_path = (
+            self._availability_relative_path.expanduser().resolve()
+        )
         self._ensure_file_exists()
 
     def _ensure_file_exists(self):
         # ensure parent directories
         self._path.parent.mkdir(parents=True, exist_ok=True)
+        self._availability_path.parent.mkdir(parents=True, exist_ok=True)
         if not self._path.exists():
             self._path.touch()
+        if not self._availability_path.exists():
+            self._availability_path.touch()
 
     def start_empty(self):
         with open(self._path, "w") as f:
@@ -211,6 +222,18 @@ class EngineHealthCheckStatusManager:
         json_status = json.dumps(status)
         with open(self._path, "a") as f:
             f.write(f"{json_status}\n")
+
+    def set_available(self):
+        with open(self._availability_path, "w") as f:
+            f.write("AVAILABLE")
+
+    def set_unavailable(self):
+        with open(self._availability_path, "w") as f:
+            f.write("UNAVAILABLE")
+
+    def get_availability(self):
+        with open(self._availability_path, "r") as f:
+            return f.read()
 
     def get_last_n_status(self, n: int = 100) -> List[Dict[str, str]]:
         with open(self._path, "r") as f:
@@ -343,6 +366,7 @@ class EngineProcess(abc.ABC):
                 if self._is_process_running():
                     time.sleep(health_check_frequency_seconds)
                 else:
+                    self._health_check_status_file.set_unavailable()
                     self._health_check_status_file.add_status("Process is not running.")
                     process = psutil.Process(self._proc.pid)
                     if process.status() == psutil.STATUS_ZOMBIE:
@@ -375,6 +399,7 @@ class EngineProcess(abc.ABC):
                         self._health_check_status_file.add_status(
                             "Health check passed after respawn."
                         )
+                        self._health_check_status_file.set_available()
                         attempt_count = 0
             except psutil.NoSuchProcess:
                 self._health_check_status_file.add_status(
@@ -390,6 +415,7 @@ class EngineProcess(abc.ABC):
                     debug_msg(f"Health check failed after respawn.")
                     attempt_count += 1
                 else:
+                    self._health_check_status_file.set_available()
                     self._health_check_status_file.add_status(
                         "Health check passed after respawn."
                     )
@@ -397,7 +423,7 @@ class EngineProcess(abc.ABC):
 
     def health_check_status(self):
         return {
-            "status": "running" if self._run_health_check is True else "stopped",
+            "status": self._health_check_status_file.get_availability(),
             "health_check_thread_running": self._run_health_check,
             "health_check_thread_last_50_status": self._health_check_status_file.get_last_n_status(
                 50
@@ -415,6 +441,7 @@ class EngineProcess(abc.ABC):
             debug_msg(f"Acquired Lock")
             if self.health_check() is False:
                 self._spawn_server_proc(context)
+                self._health_check_status_file.set_available()
                 self._run_health_check = True
                 if health_check_thread is True:
                     self._health_check_thread = Thread(

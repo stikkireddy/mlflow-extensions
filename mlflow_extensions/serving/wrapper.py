@@ -28,6 +28,7 @@ class CustomEngineServingResponse:
 
 DIAGNOSTICS_REQUEST_KEY = "COMPUTE_DIAGNOSTICS"
 ENABLE_DIAGNOSTICS_FLAG = "ENABLE_DIAGNOSTICS"
+HEALTH_CHECK_KEY = "HEALTH_CHECK"
 
 
 class CustomServingEnginePyfuncWrapper(mlflow.pyfunc.PythonModel):
@@ -107,7 +108,8 @@ class CustomServingEnginePyfuncWrapper(mlflow.pyfunc.PythonModel):
                     f"Diagnostics are disabled please set environment variable on your deployment "
                     f"ENABLE_DIAGNOSTICS=true to enable them."
                 )
-
+            elif req.startswith(HEALTH_CHECK_KEY):
+                responses.append(json.dumps(self._engine.health_check_status()))
             else:
                 responses.append(
                     self._request_model(
