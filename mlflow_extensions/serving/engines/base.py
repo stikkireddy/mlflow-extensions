@@ -1,4 +1,5 @@
 import abc
+import json
 import os
 import random
 import signal
@@ -6,6 +7,8 @@ import socket
 import subprocess
 import time
 from dataclasses import dataclass, field
+from datetime import datetime
+from pathlib import Path
 from threading import Thread
 from typing import Dict, List, Optional, Union
 
@@ -186,6 +189,37 @@ class EngineConfig(abc.ABC):
         pass
 
 
+class EngineHealthCheckStatusManager:
+
+    def __init__(self, path: str = "~/.mlflow-extensions/health-check.txt"):
+        self._relative_path = Path(path)
+        self._path = self._relative_path.expanduser().resolve()
+        self._ensure_file_exists()
+
+    def _ensure_file_exists(self):
+        # ensure parent directories
+        self._path.parent.mkdir(parents=True, exist_ok=True)
+        if not self._path.exists():
+            self._path.touch()
+
+    def start_empty(self):
+        with open(self._path, "w") as f:
+            f.write("")
+
+    def add_status(self, status: str):
+        status = {"datetime_utc": str(datetime.now()), "status": status}
+        json_status = json.dumps(status)
+        with open(self._path, "a") as f:
+            f.write(f"{json_status}\n")
+
+    def get_last_n_status(self, n: int = 100) -> List[Dict[str, str]]:
+        with open(self._path, "r") as f:
+            lines = f.readlines()
+        if len(lines) < n:
+            return [json.loads(line) for line in lines]
+        return [json.loads(line) for line in lines[-n:]]
+
+
 class EngineProcess(abc.ABC):
 
     def __init__(self, *, config: EngineConfig):
@@ -201,6 +235,7 @@ class EngineProcess(abc.ABC):
         self._proc = None
         self._run_health_check = None
         self._health_check_thread = None
+        self._health_check_status_file = EngineHealthCheckStatusManager()
 
     @property
     def server_process(self):
@@ -238,6 +273,7 @@ class EngineProcess(abc.ABC):
             self._kill_active_proc()
             self._proc = None
             self._run_health_check = False
+            self.cleanup()
 
     def _is_process_running(self):
         if self._proc is None:
@@ -253,6 +289,10 @@ class EngineProcess(abc.ABC):
         time.sleep(5)
         if self._proc.poll() is None:
             os.killpg(os.getpgid(self._proc.pid), signal.SIGKILL)
+
+    def cleanup(self) -> None:
+        # should not throw or raise errors
+        pass
 
     def _spawn_server_proc(self, context: PythonModelContext = None):
         proc_env = os.environ.copy()
@@ -287,10 +327,14 @@ class EngineProcess(abc.ABC):
             raise ValueError("Process not started yet. Run start_proc() first.")
         attempt_count = 0
         # check if pid is still running
+        self._health_check_status_file.start_empty()
         while True:
             if attempt_count > max_respawn_attempts:
                 debug_msg(
                     f"Max respawn attempts reached for {self.engine_name}. Restart serving endpoint."
+                )
+                self._health_check_status_file.add_status(
+                    "Max respawn attempts reached, server unable to be respawned."
                 )
                 break
             if self._run_health_check is not True:
@@ -299,25 +343,66 @@ class EngineProcess(abc.ABC):
                 if self._is_process_running():
                     time.sleep(health_check_frequency_seconds)
                 else:
+                    self._health_check_status_file.add_status("Process is not running.")
                     process = psutil.Process(self._proc.pid)
                     if process.status() == psutil.STATUS_ZOMBIE:
                         debug_msg(
                             f"Process: {self._proc.pid} is zombie. Killing process."
                         )
+                        self._health_check_status_file.add_status(
+                            "Process is a zombie. Killing process."
+                        )
                         self._kill_active_proc()
+                    self._health_check_status_file.add_status(
+                        "Process is not running. Calling cleanup."
+                    )
+                    self.cleanup()
+                    self._health_check_status_file.add_status(
+                        "Process is not running. Respawning."
+                    )
                     self._spawn_server_proc(context)
+                    self._health_check_status_file.add_status(
+                        "Spawn Server Proc Finished."
+                    )
                     if self.health_check() is False:
+                        self._health_check_status_file.add_status(
+                            "Health check failed after respawn. "
+                            f"Attempt: {attempt_count}"
+                        )
                         debug_msg(f"Health check failed after respawn.")
                         attempt_count += 1
                     else:
+                        self._health_check_status_file.add_status(
+                            "Health check passed after respawn."
+                        )
                         attempt_count = 0
             except psutil.NoSuchProcess:
+                self._health_check_status_file.add_status(
+                    "Process does not exist. Respawning."
+                )
                 self._spawn_server_proc(context)
+                self._health_check_status_file.add_status("Spawn Server Proc Finished.")
                 if self.health_check() is False:
+                    self._health_check_status_file.add_status(
+                        "Health check failed after respawn. "
+                        f"Attempt: {attempt_count}"
+                    )
                     debug_msg(f"Health check failed after respawn.")
                     attempt_count += 1
                 else:
+                    self._health_check_status_file.add_status(
+                        "Health check passed after respawn."
+                    )
                     attempt_count = 0
+
+    def health_check_status(self):
+        return {
+            "status": "running" if self._run_health_check is True else "stopped",
+            "health_check_thread_running": self._run_health_check,
+            "health_check_thread_last_50_status": self._health_check_status_file.get_last_n_status(
+                50
+            ),
+        }
 
     # todo add local lora paths
     def start_proc(
