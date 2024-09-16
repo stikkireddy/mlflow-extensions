@@ -2,7 +2,7 @@ import json
 import os
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterator, List, Literal, Optional, Type
+from typing import Iterator, List, Optional, Type
 
 import mlflow
 import numpy as np
@@ -10,13 +10,7 @@ import pandas as pd
 from httpx import Request, Response
 from mlflow.pyfunc import PythonModelContext
 
-from mlflow_extensions.log import (
-    LogConfig,
-    Logger,
-    LogLevel,
-    get_logger,
-    initialize_logging,
-)
+from mlflow_extensions.log import LogConfig, Logger, get_logger, initialize_logging
 from mlflow_extensions.serving.compute_details import get_compute_details
 from mlflow_extensions.serving.engines.base import EngineConfig, EngineProcess
 from mlflow_extensions.serving.serde import ResponseMessageV1

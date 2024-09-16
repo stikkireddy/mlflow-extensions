@@ -450,7 +450,141 @@ Here are the list of supported models for ollama. [Link to model list.](https://
 
 **Keep in mind databricks serving endpoints only have 4gb of memory per container.** [Link to docs.](https://docs.databricks.com/en/machine-learning/model-serving/model-serving-limits.html#limitations)
 
-## Hardware Diagnostics
+## Diagnosing Issues with LLMs or LMMs
+
+### 1. Run Health check
+
+Ensure the health check indicates that the model is "AVAILABLE". Run this a few times as the health check is at an interval
+and may not be up to date. It runs every 10 seconds by default. 
+
+You can check to see if the model is deployed properly and if the health check thread is properly working. You can go to the 
+serving UI and pass in this payload and confirm the model is responding back:
+
+```json
+{
+    "inputs": ["HEALTH_CHECK"]
+}
+```
+
+This should return something like this:
+
+```json
+{
+  "status": "AVAILABLE",
+  "worker_pid": 190700,
+  "engine_name": "vllm-engine",
+  "health_check_last_heartbeat": "2024-09-16 14:39:48.939416",
+  "health_check_thread_last_50_status": [],
+  "note": "heartbeat is updated at a frequency but can pause when server is being respawned"
+}
+```
+
+Note that `health_check_thread_last_50_status` may have values if server crashes and the health check thread restarts the server.
+Look at the following example. This is a sign that the server is not healthy and is respawning.
+
+```json
+{
+  "status": "UNAVAILABLE",
+  "worker_pid": 190699,
+  "engine_name": "vllm-engine",
+  "health_check_last_heartbeat": "2024-09-16 14:42:59.446925",
+  "health_check_thread_last_50_status": [
+    {
+      "datetime_utc": "2024-09-16 14:41:18.944528",
+      "status": "Process is not running."
+    },
+    {
+      "datetime_utc": "2024-09-16 14:41:18.944714",
+      "status": "Process is a zombie. Killing process."
+    },
+    {
+      "datetime_utc": "2024-09-16 14:41:23.945091",
+      "status": "Process is not running. Calling cleanup."
+    },
+    {
+      "datetime_utc": "2024-09-16 14:41:24.391587",
+      "status": "Process is not running. Respawning."
+    }
+  ],
+  "note": "heartbeat is updated at a frequency but can pause when server is being respawned"
+}
+```
+
+After it finishes it will look like the following:
+
+```json
+{
+  "status": "AVAILABLE",
+  "worker_pid": 190699,
+  "engine_name": "vllm-engine",
+  "health_check_last_heartbeat": "2024-09-16 14:42:59.446925",
+  "health_check_thread_last_50_status": [
+    {
+      "datetime_utc": "2024-09-16 14:41:18.944528",
+      "status": "Process is not running."
+    },
+    {
+      "datetime_utc": "2024-09-16 14:41:18.944714",
+      "status": "Process is a zombie. Killing process."
+    },
+    {
+      "datetime_utc": "2024-09-16 14:41:23.945091",
+      "status": "Process is not running. Calling cleanup."
+    },
+    {
+      "datetime_utc": "2024-09-16 14:41:24.391587",
+      "status": "Process is not running. Respawning."
+    },
+    {
+      "datetime_utc": "2024-09-16 14:42:09.442435",
+      "status": "Spawn Server Proc Finished."
+    },
+    {
+      "datetime_utc": "2024-09-16 14:42:09.444293",
+      "status": "Health check passed after respawn."
+    }
+  ],
+  "note": "heartbeat is updated at a frequency but can pause when server is being respawned"
+}
+```
+
+### 2. Check if models are properly loaded
+
+You should then check if the models are properly loaded:
+
+```python
+from mlflow_extensions.serving.compat.openai import OpenAI
+
+client = OpenAI(
+  base_url="<endpoint url>",
+  api_key="<databricks token>"
+)
+
+for model in client.models.list():
+  print(model.json())
+```
+
+### 3. Check basic generation using the openai client
+
+Get the proper model name from the previous deployment.
+
+```python
+from mlflow_extensions.serving.compat.openai import OpenAI
+
+client = OpenAI(
+  base_url="<endpoint url>",
+  api_key="<databricks token>"
+)
+
+response = client.completions.create(
+  model="<model name from previous message>",
+  prompt=[
+    "The sky Why is the sky blue?"
+  ],
+  max_tokens=128
+)
+print(response.json())
+```
 
 ### GPU Diagnostics
 
