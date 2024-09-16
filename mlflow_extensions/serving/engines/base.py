@@ -440,6 +440,7 @@ class EngineProcess(abc.ABC):
         with self._lock:
             debug_msg(f"Acquired Lock")
             if self.health_check() is False:
+                self._health_check_status_file.set_unavailable()
                 self._spawn_server_proc(context)
                 self._health_check_status_file.set_available()
                 self._run_health_check = True
