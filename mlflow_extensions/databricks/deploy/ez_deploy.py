@@ -51,6 +51,44 @@ class EzDeployConfig:
     serving_config: ServingConfig
     pip_config_override: List[str] = None
 
+    def serialize_json(self):
+        data = {
+            "name": self.name,
+            "engine_config": asdict(self.engine_config),
+            "engine_proc": self.engine_proc.__name__,
+            "pip_config_override": self.pip_config_override,
+        }
+        return json.dumps(data)
+
+    @classmethod
+    def from_json(cls, json_str):
+        data = json.loads(json_str)
+        engine_proc = data["engine_proc"]
+        if engine_proc == "VLLMEngineProcess":
+            from mlflow_extensions.serving.engines import VLLMEngineProcess, VLLMEngineConfig
+            engine_proc = VLLMEngineProcess
+            engine_config = VLLMEngineConfig(**data["engine_config"])
+        elif engine_proc == "SglangEngineProcess":
+            from mlflow_extensions.serving.engines import SglangEngineProcess, SglangEngineConfig
+            engine_proc = SglangEngineProcess
+            engine_config = SglangEngineConfig(**data["engine_config"])
+        else:
+            raise ValueError(f"Unsupported engine process {engine_proc}")
+        return EzDeployConfig(
+            name=data["name"],
+            engine_config=engine_config,
+            engine_proc=engine_proc,
+            pip_config_override=data["pip_config_override"],
+            serving_config=ServingConfig(minimum_memory_in_gb=-1),
+        )
+
+    def to_proc(self) -> EngineProcess:
+        return self.engine_proc(config=self.engine_config)
+
+    def download_artifacts(self, local_dir: str = "/local_disk0/models"):
+        return self.engine_config.setup_artifacts(local_dir=local_dir)
+
+
 
 class EzDeploy:
 
