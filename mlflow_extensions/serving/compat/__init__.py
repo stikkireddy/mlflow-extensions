@@ -28,6 +28,25 @@ def build_endpoint_url(url: str) -> str:
     return normalized_url
 
 
+def get_ezdeploy_lite_openai_url(
+    model_deployment_name: str,
+    databricks_host: str = None,
+    databricks_token: str = None,
+    prefix: str = None,
+):
+    from mlflow_extensions.databricks.deploy.ez_deploy_lite import (
+        EZ_DEPLOY_LITE_PREFIX,
+        EzDeployLiteManager,
+    )
+
+    edlm = EzDeployLiteManager(
+        databricks_host=databricks_host,
+        databricks_token=databricks_token,
+        prefix=prefix or EZ_DEPLOY_LITE_PREFIX,
+    )
+    return edlm.get_openai_url(model_deployment_name)
+
+
 class BaseCustomMLFlowHttpClient:
     def __init__(
         self,

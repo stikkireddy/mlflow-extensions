@@ -8,6 +8,7 @@ from databricks.sdk import WorkspaceClient
 from databricks.sdk.errors import NotFound, ResourceDoesNotExist
 from databricks.sdk.service.serving import EndpointCoreConfigInput, ServedEntityInput
 
+from mlflow_extensions.databricks.deploy.ez_deploy_lite import EzDeployLiteManager
 from mlflow_extensions.databricks.deploy.gpu_configs import (
     ALL_VALID_GPUS,
     Cloud,
@@ -50,6 +51,51 @@ class EzDeployConfig:
     engine_proc: Type[EngineProcess]
     serving_config: ServingConfig
     pip_config_override: List[str] = None
+
+    def serialize_json(self):
+        data = {
+            "name": self.name,
+            "engine_config": asdict(self.engine_config),
+            "engine_proc": self.engine_proc.__name__,
+            "pip_config_override": self.pip_config_override,
+        }
+        return json.dumps(data)
+
+    @classmethod
+    def from_json(cls, json_str):
+        data = json.loads(json_str)
+        engine_proc = data["engine_proc"]
+        if engine_proc == "VLLMEngineProcess":
+            from mlflow_extensions.serving.engines import (
+                VLLMEngineConfig,
+                VLLMEngineProcess,
+            )
+
+            engine_proc = VLLMEngineProcess
+            engine_config = VLLMEngineConfig(**data["engine_config"])
+        elif engine_proc == "SglangEngineProcess":
+            from mlflow_extensions.serving.engines import (
+                SglangEngineConfig,
+                SglangEngineProcess,
+            )
+
+            engine_proc = SglangEngineProcess
+            engine_config = SglangEngineConfig(**data["engine_config"])
+        else:
+            raise ValueError(f"Unsupported engine process {engine_proc}")
+        return EzDeployConfig(
+            name=data["name"],
+            engine_config=engine_config,
+            engine_proc=engine_proc,
+            pip_config_override=data["pip_config_override"],
+            serving_config=ServingConfig(minimum_memory_in_gb=-1),
+        )
+
+    def to_proc(self) -> EngineProcess:
+        return self.engine_proc(config=self.engine_config)
+
+    def download_artifacts(self, local_dir: str = "/local_disk0/models"):
+        return self.engine_config.setup_artifacts(local_dir=local_dir)
 
 
 class EzDeploy:
@@ -231,3 +277,46 @@ class EzDeploy:
                     )
                 ],
             )
+
+
+class EzDeployLite:
+
+    def __init__(
+        self,
+        ez_deploy_config: EzDeployConfig,
+        databricks_host: str = None,
+        databricks_token: str = None,
+    ):
+        self._config: EzDeployConfig = ez_deploy_config
+        self._downloaded = False
+        if databricks_host is None or databricks_token is None:
+            from mlflow.utils.databricks_utils import get_databricks_host_creds
+
+            self._client = WorkspaceClient(
+                host=get_databricks_host_creds().host,
+                token=get_databricks_host_creds().token,
+            )
+            self._cloud = Cloud.from_host(get_databricks_host_creds().host)
+        else:
+            self._client = WorkspaceClient(host=databricks_host, token=databricks_token)
+            self._cloud = Cloud.from_host(databricks_host)
+        self._edlm = EzDeployLiteManager(
+            databricks_host=databricks_host, databricks_token=databricks_token
+        )
+
+    def deploy(
+        self,
+        deployment_name: str,
+        hf_secret_scope: str,
+        hf_secret_key: str,
+        specific_git_ref: str = None,
+    ):
+        self._edlm.upsert(
+            deployment_name,
+            cloud_provider=Cloud.GCP,
+            ez_deploy_config=self._config,
+            hf_secret_key=hf_secret_key,
+            hf_secret_scope=hf_secret_scope,
+            entrypoint_git_ref=specific_git_ref,
+        )
+        self._edlm.start_server(deployment_name)
