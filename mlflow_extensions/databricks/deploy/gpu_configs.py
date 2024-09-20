@@ -93,3 +93,14 @@ class AzureServingGPUConfig(Enum):
 ALL_VALID_GPUS = [gpu.value for gpu in AzureServingGPUConfig] + [
     gpu.value for gpu in AWSServingGPUConfig
 ]
+
+
+class GCPVMConfigs(Enum):
+    A2_HIGHGPU_1G = GPUConfig(name="a2-highgpu-1g", gpu_count=1, gpu_type=GPUType.A100_40G, cloud=Cloud.GCP)
+    A2_HIGHGPU_2G = GPUConfig(name="a2-highgpu-2g", gpu_count=2, gpu_type=GPUType.A100_40G, cloud=Cloud.GCP)
+    A2_HIGHGPU_4G = GPUConfig(name="a2-highgpu-4g", gpu_count=4, gpu_type=GPUType.A100_40G, cloud=Cloud.GCP)
+    A2_HIGHGPU_8G = GPUConfig(name="a2-highgpu-8g", gpu_count=8, gpu_type=GPUType.A100_40G, cloud=Cloud.GCP)
+    A2_MEGAGPU_16G = GPUConfig(name="a2-megagpu-16g", gpu_count=16, gpu_type=GPUType.A100_40G, cloud=Cloud.GCP)
+
+
+ALL_VALID_VM_CONFIGS = [gpu.value for gpu in GCPVMConfigs]
