@@ -212,7 +212,7 @@ class EzDeployLiteManager:
         self,
         model_deployment_name,
         cloud_provider,
-        ez_deploy_config: EzDeployConfig,
+        ez_deploy_config: "EzDeployConfig",
         hf_secret_scope=None,
         hf_secret_key=None,
         entrypoint_git_ref: str = None,
