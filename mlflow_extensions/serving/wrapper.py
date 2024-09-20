@@ -2,7 +2,7 @@ import json
 import os
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterator, List, Literal, Optional, Type
+from typing import Iterator, List, Optional, Type
 
 import mlflow
 import numpy as np
@@ -10,17 +10,14 @@ import pandas as pd
 from httpx import Request, Response
 from mlflow.pyfunc import PythonModelContext
 
-from mlflow_extensions.log import (
-    LogConfig,
-    Logger,
-    LogLevel,
-    get_logger,
-    initialize_logging,
-)
+from mlflow_extensions.log import LogConfig, Logger, get_logger, initialize_logging
 from mlflow_extensions.serving.compute_details import get_compute_details
 from mlflow_extensions.serving.engines.base import EngineConfig, EngineProcess
 from mlflow_extensions.serving.serde import ResponseMessageV1
-from mlflow_extensions.serving.serde_v2 import MlflowPyfuncHttpxSerializer
+from mlflow_extensions.serving.serde_v2 import (
+    MlflowPyfuncHttpxSerializer,
+    make_error_response,
+)
 
 LOGGER: Logger = get_logger()
 
@@ -31,8 +28,9 @@ class CustomEngineServingResponse:
     data: dict
 
 
-DIAGNOSTICS_REQUEST_KEY: str = "COMPUTE_DIAGNOSTICS"
-ENABLE_DIAGNOSTICS_FLAG: str = "ENABLE_DIAGNOSTICS"
+DIAGNOSTICS_REQUEST_KEY = "COMPUTE_DIAGNOSTICS"
+ENABLE_DIAGNOSTICS_FLAG = "ENABLE_DIAGNOSTICS"
+HEALTH_CHECK_KEY = "HEALTH_CHECK"
 
 LOG_LEVEL: str = "LOG_LEVEL"
 LOG_FILE_KEY: str = "LOG_FILE"
@@ -57,7 +55,28 @@ class CustomServingEnginePyfuncWrapper(mlflow.pyfunc.PythonModel):
         return self._artifacts
 
     def _request_model(self, req: Request):
-        response = self._engine.oai_http_client.send(req)
+        # deserializer takes care of identifying whether oai client is needed or standard server client
+        # so directly send to the root of the server
+        try:
+            response = self._engine.server_http_client.send(req)
+        except Exception as e:
+            LOGGER.error(
+                f"Error in request: {req}, server_status: {self._engine.health_check_status()},"
+                f" error: {str(e)}"
+            )
+            return MlflowPyfuncHttpxSerializer.serialize_response(
+                make_error_response(
+                    original_request=req,
+                    error_message=str(e),
+                    error_type=str(type(e)),
+                    error_details={
+                        "server_status": self._engine.health_check_status(),
+                        "nvidia-smi": get_compute_details(cmd_key="nvidia-smi"),
+                        "active-procs": get_compute_details(cmd_key="active-procs"),
+                        "command": self._engine_config.to_run_command(),
+                    },
+                )
+            )
         return MlflowPyfuncHttpxSerializer.serialize_response(response)
 
     @staticmethod
@@ -68,8 +87,10 @@ class CustomServingEnginePyfuncWrapper(mlflow.pyfunc.PythonModel):
             yield ResponseMessageV1.deserialize(prediction)
 
     def load_context(self, context: PythonModelContext):
+        default_home_path = "~/.mlflow-extensions/logs/serving.log"
+        resolved_path = os.path.expanduser(default_home_path)
         log_config: LogConfig = LogConfig(
-            filename=os.environ.get(LOG_FILE_KEY, "serving.log"),
+            filename=os.environ.get(LOG_FILE_KEY, str(resolved_path)),
             archive_path=os.environ.get(ARCHIVE_LOG_PATH_KEY),
         )
         initialize_logging(log_config)
@@ -123,7 +144,8 @@ class CustomServingEnginePyfuncWrapper(mlflow.pyfunc.PythonModel):
                     f"Diagnostics are disabled please set environment variable on your deployment "
                     f"ENABLE_DIAGNOSTICS=true to enable them."
                 )
-
+            elif req.startswith(HEALTH_CHECK_KEY):
+                responses.append(json.dumps(self._engine.health_check_status()))
             else:
                 responses.append(
                     self._request_model(

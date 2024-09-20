@@ -1,6 +1,7 @@
 import json
 from base64 import b64decode, b64encode
 from io import BytesIO
+from typing import Any, Dict
 
 import httpx
 from httpx import URL, Request
@@ -137,3 +138,27 @@ class MlflowPyfuncHttpxSerializer:
             content=content,
             request=orig_request,
         )
+
+
+def make_error_response(
+    *,
+    original_request: Request,
+    error_message: str,
+    error_type: str,
+    error_details: Dict[str, Any],
+    status_code: int = 500
+):
+    return httpx.Response(
+        status_code=status_code,
+        headers={"content-type": "application/json"},
+        content=json.dumps(
+            {
+                "error": error_message,
+                "error_type": error_type,
+                "error_details": error_details,
+                "original_request": MlflowPyfuncHttpxSerializer.serialize_request(
+                    original_request, url_path_to_request=original_request.url.path
+                ),
+            }
+        ),
+    )

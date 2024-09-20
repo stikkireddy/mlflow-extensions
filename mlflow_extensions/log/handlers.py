@@ -95,9 +95,10 @@ def _get_databricks_host_creds(
             databricks_token = os.environ.get(
                 "DATABRICKS_TOKEN", get_databricks_host_creds().token
             )
-        except ImportError:
-            databricks_host = os.environ.get("DATABRICKS_HOST")
-            databricks_token = os.environ.get("DATABRICKS_TOKEN")
+        except Exception as e:
+            databricks_host = os.environ.get("DATABRICKS_HOST", None)
+            databricks_token = os.environ.get("DATABRICKS_TOKEN", None)
+            logger.info("Failed to get databricks creds", error=str(e))
 
     return databricks_host, databricks_token
 

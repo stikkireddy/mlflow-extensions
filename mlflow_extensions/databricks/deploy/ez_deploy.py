@@ -179,7 +179,11 @@ class EzDeploy:
             print(
                 f"Deploying model: {name}; look at the serving tab to track progress..."
             )
-        environment_vars = {}
+        environment_vars = {
+            # ensure that for docker container that all logs are always flushed to terminal
+            # and not buffered anywhere
+            "PYTHONUNBUFFERED": "1",
+        }
         if enable_diagnostics is True:
             environment_vars[ENABLE_DIAGNOSTICS_FLAG] = "true"
         if log_config is not None:

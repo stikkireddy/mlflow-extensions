@@ -13,6 +13,7 @@ from mlflow_extensions.serving.engines.huggingface_utils import (
     ensure_chat_template,
     snapshot_download_local,
 )
+from mlflow_extensions.testing.helper import kill_processes_containing
 
 LOGGER: Logger = get_logger()
 
@@ -219,3 +220,20 @@ class SglangEngineProcess(EngineProcess):
                 f"Health check failed with error {e}; server may not be up yet or crashed;"
             )
             return False
+
+    def cleanup(self) -> None:
+        try:
+            import ray
+
+            ray.shutdown()
+        except Exception:
+            pass
+
+        try:
+            kill_processes_containing("sglang")
+            # sglang uses vllm under the hood and may spawn vllm proc
+            kill_processes_containing("vllm")
+            kill_processes_containing("ray")
+            kill_processes_containing("from multiprocessing")
+        except Exception:
+            pass

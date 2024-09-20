@@ -1,4 +1,5 @@
 import abc
+import json
 import os
 import random
 import signal
@@ -6,6 +7,8 @@ import socket
 import subprocess
 import time
 from dataclasses import dataclass, field
+from datetime import datetime
+from pathlib import Path
 from threading import Thread
 from typing import Dict, List, Optional, Union
 
@@ -192,6 +195,76 @@ class EngineConfig(abc.ABC):
         pass
 
 
+class EngineHealthCheckStatusManager:
+
+    def __init__(
+        self,
+        health_check_path: str = "~/.mlflow-extensions/health-check.txt",
+        availability_path: str = "~/.mlflow-extensions/availability.txt",
+        heartbeat_path: str = "~/.mlflow-extensions/heartbeat.txt",
+    ):
+        self._health_check_relative_path = Path(health_check_path)
+        self._availability_relative_path = Path(availability_path)
+        self._heartbeat_relative_path = Path(heartbeat_path)
+        self._health_check_path = (
+            self._health_check_relative_path.expanduser().resolve()
+        )
+        self._availability_path = (
+            self._availability_relative_path.expanduser().resolve()
+        )
+        self._heartbeat_path = self._heartbeat_relative_path.expanduser().resolve()
+        self._ensure_file_exists()
+
+    def _ensure_file_exists(self):
+        # ensure parent directories
+        self._health_check_path.parent.mkdir(parents=True, exist_ok=True)
+        self._availability_path.parent.mkdir(parents=True, exist_ok=True)
+        self._heartbeat_path.parent.mkdir(parents=True, exist_ok=True)
+        if not self._health_check_path.exists():
+            self._health_check_path.touch()
+        if not self._availability_path.exists():
+            self._availability_path.touch()
+        if not self._heartbeat_path.exists():
+            self._heartbeat_path.touch()
+
+    def start_empty(self):
+        with open(self._health_check_path, "w") as f:
+            f.write("")
+
+    def add_status(self, status: str):
+        status = {"datetime_utc": str(datetime.now()), "status": status}
+        json_status = json.dumps(status)
+        with open(self._health_check_path, "a") as f:
+            f.write(f"{json_status}\n")
+
+    def set_available(self):
+        with open(self._availability_path, "w") as f:
+            f.write("AVAILABLE")
+
+    def set_unavailable(self):
+        with open(self._availability_path, "w") as f:
+            f.write("UNAVAILABLE")
+
+    def get_availability(self):
+        with open(self._availability_path, "r") as f:
+            return f.read()
+
+    def get_last_heartbeat(self):
+        with open(self._heartbeat_path, "r") as f:
+            return f.read()
+
+    def set_heartbeat(self):
+        with open(self._heartbeat_path, "w") as f:
+            f.write(str(datetime.now()))
+
+    def get_last_n_status(self, n: int = 100) -> List[Dict[str, str]]:
+        with open(self._health_check_path, "r") as f:
+            lines = f.readlines()
+        if len(lines) < n:
+            return [json.loads(line) for line in lines]
+        return [json.loads(line) for line in lines[-n:]]
+
+
 class EngineProcess(abc.ABC):
 
     def __init__(self, *, config: EngineConfig):
@@ -207,6 +280,7 @@ class EngineProcess(abc.ABC):
         self._proc = None
         self._run_health_check = None
         self._health_check_thread = None
+        self._health_check_status_file = EngineHealthCheckStatusManager()
 
     @property
     def server_process(self):
@@ -246,6 +320,7 @@ class EngineProcess(abc.ABC):
             self._kill_active_proc()
             self._proc = None
             self._run_health_check = False
+            self.cleanup()
 
     @log_around(logger=LOGGER)
     def _is_process_running(self):
@@ -263,6 +338,10 @@ class EngineProcess(abc.ABC):
         time.sleep(5)
         if self._proc.poll() is None:
             os.killpg(os.getpgid(self._proc.pid), signal.SIGKILL)
+
+    def cleanup(self) -> None:
+        # should not throw or raise errors
+        pass
 
     @log_around(logger=LOGGER)
     def _spawn_server_proc(self, context: PythonModelContext = None):
@@ -301,10 +380,16 @@ class EngineProcess(abc.ABC):
             raise ValueError("Process not started yet. Run start_proc() first.")
         attempt_count = 0
         # check if pid is still running
+        self._health_check_status_file.start_empty()
         while True:
+            # let's set heartbeat before processing anything
+            self._health_check_status_file.set_heartbeat()
             if attempt_count > max_respawn_attempts:
-                LOGGER.debug(
+                LOGGER.info(
                     f"Max respawn attempts reached for {self.engine_name}. Restart serving endpoint."
+                )
+                self._health_check_status_file.add_status(
+                    "Max respawn attempts reached, server unable to be respawned."
                 )
                 break
             if self._run_health_check is not True:
@@ -313,25 +398,80 @@ class EngineProcess(abc.ABC):
                 if self._is_process_running():
                     time.sleep(health_check_frequency_seconds)
                 else:
+                    LOGGER.info(f"Process: {self._proc.pid} is not running.")
+                    self._health_check_status_file.set_unavailable()
+                    self._health_check_status_file.add_status("Process is not running.")
                     process = psutil.Process(self._proc.pid)
                     if process.status() == psutil.STATUS_ZOMBIE:
                         LOGGER.info(
                             f"Process: {self._proc.pid} is zombie. Killing process."
                         )
+                        self._health_check_status_file.add_status(
+                            "Process is a zombie. Killing process."
+                        )
                         self._kill_active_proc()
+                    LOGGER.info(f"Calling cleanup for {self.engine_name}")
+                    self._health_check_status_file.add_status(
+                        "Process is not running. Calling cleanup."
+                    )
+                    self.cleanup()
+                    LOGGER.info(f"Respawning {self.engine_name}")
+                    self._health_check_status_file.add_status(
+                        "Process is not running. Respawning."
+                    )
                     self._spawn_server_proc(context)
+                    self._health_check_status_file.add_status(
+                        "Spawn Server Proc Finished."
+                    )
                     if self.health_check() is False:
-                        LOGGER.info(f"Health check failed after respawn.")
+                        self._health_check_status_file.add_status(
+                            "Health check failed after respawn. "
+                            f"Attempt: {attempt_count}"
+                        )
+                        LOGGER.error(f"Health check failed after respawn.")
                         attempt_count += 1
                     else:
+                        LOGGER.info(f"Health check passed after respawn.")
+                        self._health_check_status_file.add_status(
+                            "Health check passed after respawn."
+                        )
+                        self._health_check_status_file.set_available()
                         attempt_count = 0
             except psutil.NoSuchProcess:
+                LOGGER.info(f"Process: {self._proc.pid} does not exist.")
+                self._health_check_status_file.add_status(
+                    "Process does not exist. Respawning."
+                )
+                LOGGER.info(f"Respawning {self.engine_name}")
                 self._spawn_server_proc(context)
+                LOGGER.info(f"Spawn Server Proc Finished.")
+                self._health_check_status_file.add_status("Spawn Server Proc Finished.")
                 if self.health_check() is False:
-                    LOGGER.error(f"Health check failed after respawn.")
+                    self._health_check_status_file.add_status(
+                        "Health check failed after respawn. "
+                        f"Attempt: {attempt_count}"
+                    )
+                    LOGGER.error("Health check failed after respawn.")
                     attempt_count += 1
                 else:
+                    self._health_check_status_file.set_available()
+                    self._health_check_status_file.add_status(
+                        "Health check passed after respawn."
+                    )
+                    LOGGER.info("Health check passed after respawn.")
                     attempt_count = 0
+
+    def health_check_status(self):
+        return {
+            "status": self._health_check_status_file.get_availability(),
+            "worker_pid": os.getpid(),
+            "engine_name": self.engine_name,
+            "health_check_last_heartbeat": self._health_check_status_file.get_last_heartbeat(),
+            "health_check_thread_last_50_status": self._health_check_status_file.get_last_n_status(
+                50
+            ),
+            "note": "heartbeat is updated at a frequency but can pause when server is being respawned",
+        }
 
     @log_around(logger=LOGGER)
     # todo add local lora paths
@@ -340,11 +480,13 @@ class EngineProcess(abc.ABC):
     ):
         # kill process in port if already running
         time.sleep(random.randint(1, 5))
-        LOGGER.debug(f"Attempting to acquire Lock")
+        LOGGER.info(f"Attempting to acquire Lock")
         with self._lock:
-            LOGGER.debug(f"Acquired Lock")
+            LOGGER.info(f"Acquired Lock")
             if self.health_check() is False:
+                self._health_check_status_file.set_unavailable()
                 self._spawn_server_proc(context)
+                self._health_check_status_file.set_available()
                 self._run_health_check = True
                 if health_check_thread is True:
                     self._health_check_thread = Thread(
@@ -356,4 +498,4 @@ class EngineProcess(abc.ABC):
                     if self._health_check_thread is not None:
                         self._health_check_thread.start()
             else:
-                LOGGER.debug(f"{self.engine_name} already running")
+                LOGGER.info(f"{self.engine_name} already running")
