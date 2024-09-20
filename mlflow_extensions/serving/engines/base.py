@@ -198,7 +198,9 @@ class EngineProcess(abc.ABC):
 
     def __init__(self, *, config: EngineConfig):
         self._config = config
-        self._lock = FileLock(f"{self.__class__.__name__}.txt.lock")
+        # expand ~ to home directory
+        file_lock_path = os.path.expanduser(f"~/{self.__class__.__name__}.txt.lock")
+        self._lock = FileLock(file_lock_path)
         self._server_http_client = httpx.Client(
             base_url=f"http://{self._config.host}:{self._config.port}", timeout=30
         )
