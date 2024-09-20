@@ -1,4 +1,4 @@
-import functools
+import time
 from dataclasses import dataclass, field
 from typing import List, Optional
 
@@ -197,7 +197,15 @@ class EzDeployLiteManager:
         return len(self.get_jobs(job_name)) >= 1
 
     def make_oai_url(self, cluster_id):
-        return f"{self.client.config.host.rstrip('/')}/driver-proxy-api/o/0/{cluster_id}/9989/v1/"
+        try:
+            from pyspark.sql import SparkSession
+
+            spark = SparkSession.getActiveSession()
+            url = f'https://{spark.conf.get("spark.databricks.workspaceUrl")}'
+            url = url.rstrip("/")
+            return f"{url}/driver-proxy-api/o/0/{cluster_id}/9989/v1/"
+        except ImportError:
+            return f"{self.client.config.host.rstrip('/')}/driver-proxy-api/o/0/{cluster_id}/9989/v1/"
 
     def get_openai_url(
         self, model_deployment_name, deployment_name: str = EZ_DEPLOY_TASK
@@ -261,8 +269,14 @@ class EzDeployLiteManager:
         job_id = job.job_id
         active_runs = list(self.client.jobs.list_runs(active_only=True, job_id=job_id))
         if len(active_runs) == 0:
-            run = self.client.jobs.run_now(job_id=job_id)
-            print("Running model at: ", run.result().run_page_url)
+            self.client.jobs.run_now(job_id=job_id)
+            time.sleep(5)
+            active_runs = list(
+                self.client.jobs.list_runs(active_only=True, job_id=job_id)
+            )
+            print("Running model at: ", active_runs[0].run_page_url)
+            return
+
         active_runs_urls = [run.run_page_url for run in active_runs]
         raise ValueError(
             f"Model deployment {model_deployment_name} has an active run, please cancel the run "

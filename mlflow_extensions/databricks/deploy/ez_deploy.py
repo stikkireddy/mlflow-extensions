@@ -307,8 +307,8 @@ class EzDeployLite:
     def deploy(
         self,
         deployment_name: str,
-        hf_secret_scope: str,
-        hf_secret_key: str,
+        hf_secret_scope: str = None,
+        hf_secret_key: str = None,
         specific_git_ref: str = None,
     ):
         self._edlm.upsert(
