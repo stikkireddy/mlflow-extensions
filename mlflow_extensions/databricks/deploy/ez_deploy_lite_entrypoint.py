@@ -16,6 +16,7 @@ assert pip_reqs, "pip_reqs is required"
 # COMMAND ----------
 
 from IPython import get_ipython
+
 ipython = get_ipython()
 ipython.run_line_magic("pip", f"install {pip_reqs} hf_transfer")
 ipython.run_line_magic("pip", f"install -U openai")
@@ -33,9 +34,12 @@ assert pip_reqs, "pip_reqs is required"
 # COMMAND ----------
 
 import os
+
 os.environ["HF_HUB_ENABLE_HF_TRANSFER"] = "1"
 if hf_secret_scope and hf_secret_key:
-    os.environ["HF_TOKEN"] = dbutils.secrets.get(scope=hf_secret_scope, key=hf_secret_key)
+    os.environ["HF_TOKEN"] = dbutils.secrets.get(
+        scope=hf_secret_scope, key=hf_secret_key
+    )
 
 # COMMAND ----------
 
@@ -54,15 +58,15 @@ artifacts = config.download_artifacts()
 # COMMAND ----------
 
 from mlflow.pyfunc import PythonModelContext
-ctx = PythonModelContext(
-  artifacts=artifacts,
-  model_config={}
-)
+
+ctx = PythonModelContext(artifacts=artifacts, model_config={})
 
 # COMMAND ----------
 
-from mlflow_extensions.testing.helper import kill_processes_containing
 import ray
+
+from mlflow_extensions.testing.helper import kill_processes_containing
+
 ray.shutdown()
 kill_processes_containing("vllm")
 kill_processes_containing("ray")
@@ -73,5 +77,6 @@ engine_process.start_proc(ctx, health_check_thread=False)
 # COMMAND ----------
 
 import time
+
 while True:
-  time.sleep(1)
+    time.sleep(1)
