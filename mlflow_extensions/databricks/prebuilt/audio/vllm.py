@@ -15,6 +15,9 @@ FIXIE_ULTRA_VOX_0_4_64K_CONFIG = EzDeployConfig(
         trust_remote_code=True,
         guided_decoding_backend="outlines",
         max_model_len=64000,
+        library_overrides={
+            "vllm": '"vllm[audio]==0.6.0"'
+        }
     ),
     serving_config=ServingConfig(
         # rough estimate for the engines this includes model weights + kv cache + overhead + intermediate states
@@ -30,6 +33,9 @@ FIXIE_ULTRA_VOX_0_4_128K_CONFIG = EzDeployConfig(
         model="fixie-ai/ultravox-v0_4",
         trust_remote_code=True,
         guided_decoding_backend="outlines",
+        library_overrides={
+            "vllm": 'vllm[audio]==0.6.0'
+        }
     ),
     serving_config=ServingConfig(
         # rough estimate for the engines this includes model weights + kv cache + overhead + intermediate states
