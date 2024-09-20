@@ -117,6 +117,30 @@ def make_create_json(
     }
     gpu_node.update(make_cloud_specific_attrs(cloud_provider))
 
+    if specific_git_ref:
+        parts = specific_git_ref.split("/", maxsplit=1)
+        git_type = "git_branch"
+        if parts[0].startswith("commit"):
+            git_type = "git_commit"
+        elif parts[0].startswith("tag"):
+            git_type = "git_tag"
+
+        git_source = GitSource.from_dict(
+            {
+                "git_url": "https://github.com/stikkireddy/mlflow-extensions.git",
+                "git_provider": "gitHub",
+                git_type: specific_git_ref,
+            }
+        )
+    else:
+        git_source = GitSource.from_dict(
+            {
+                "git_url": "https://github.com/stikkireddy/mlflow-extensions.git",
+                "git_provider": "gitHub",
+                "git_tag": f"v{get_mlflow_extensions_version()}",
+            }
+        )
+
     return {
         "name": job_name,
         "timeout_seconds": 0,
@@ -140,13 +164,7 @@ def make_create_json(
                 }
             )
         ],
-        "git_source": GitSource.from_dict(
-            {
-                "git_url": "https://github.com/stikkireddy/mlflow-extensions.git",
-                "git_provider": "gitHub",
-                "git_branch": specific_git_ref or get_mlflow_extensions_version(),
-            }
-        ),
+        "git_source": git_source,
         "job_clusters": [
             JobCluster.from_dict(
                 {"job_cluster_key": "deployment_gpu", "new_cluster": gpu_node}
