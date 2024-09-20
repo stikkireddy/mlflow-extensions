@@ -189,7 +189,6 @@ class EzDeployLiteManager:
     def make_name(self, name):
         return f"{self._prefix} {name}"
 
-    @functools.lru_cache(maxsize=32)
     def get_jobs(self, job_name):
         return [job for job in self.client.jobs.list(name=job_name)]
 
@@ -260,9 +259,12 @@ class EzDeployLiteManager:
             raise ValueError(f"Model deployment {model_deployment_name} does not exist")
         job = list(self.client.jobs.list(name=job_name))[0]
         job_id = job.job_id
-        if len(list(self.client.jobs.list_runs(active_only=True, job_id=job_id))) == 0:
-            return self.client.jobs.run_now(job_id=job_id)
+        active_runs = list(self.client.jobs.list_runs(active_only=True, job_id=job_id))
+        if len(active_runs) == 0:
+            run = self.client.jobs.run_now(job_id=job_id)
+            print("Running model at: ", run.result().run_page_url)
+        active_runs_urls = [run.run_page_url for run in active_runs]
         raise ValueError(
             f"Model deployment {model_deployment_name} has an active run, please cancel the run "
-            f"and start a new run."
+            f"and start a new run. Please cancel these: {str(active_runs_urls)}"
         )
