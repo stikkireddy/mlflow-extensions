@@ -313,7 +313,7 @@ class EzDeployLite:
     ):
         self._edlm.upsert(
             deployment_name,
-            cloud_provider=Cloud.GCP,
+            cloud_provider=self._cloud,
             ez_deploy_config=self._config,
             hf_secret_key=hf_secret_key,
             hf_secret_scope=hf_secret_scope,
