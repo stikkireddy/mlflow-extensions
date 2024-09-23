@@ -1,0 +1,126 @@
+site_name: Mlflow Extensions Docs
+site_description: Mlflow Extensions is a library that helps you extend the capabilities of Mlflow by providing a set of 
+  tools to help you build and deploy your machine learning models.
+
+theme:
+  name: material
+  custom_dir: docs/overrides
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - content.code.annotate
+    - content.action.edit
+    - content.action.view
+    - content.tooltips
+    - content.code.copy
+    - navigation.indexes
+    - navigation.instant
+    - navigation.instant.progress
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.top
+    - navigation.tracking
+    - navigation.expand
+    - search.highlight
+    - search.share
+    - search.suggest
+    - toc.follow
+
+  font:
+    text: Roboto
+    code: Roboto Mono
+  language: en
+
+repo_name: stikkireddy/mlflow-extensions
+repo_url: https://github.com/stikkireddy/mlflow-extensions
+edit_uri: edit/main/docs/
+
+plugins:
+  - search:
+      lang: en
+  - mkdocs-jupyter:
+      ignore_h1_titles: True
+      include_source: True
+
+markdown_extensions:
+  - abbr
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - toc:
+      permalink: true
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.betterem:
+      smart_enable: all
+  - pymdownx.caret
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_generator: !!python/name:materialx.emoji.to_svg
+      emoji_index: !!python/name:materialx.emoji.twemoji
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.keys
+  - pymdownx.magiclink:
+      repo_url_shorthand: true
+      user: squidfunk
+      repo: mkdocs-material
+  - pymdownx.mark
+  - pymdownx.smartsymbols
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.tilde
+  - pymdownx.snippets
+
+
+nav:
+  - About: index.md
+  - Getting Started:
+    - Setup: getting-started/setup.md
+    - EzDeployLite (dev/test): getting-started/ezdeploylite.md
+    - EzDeploy (prod): getting-started/ezdeploy.md
+    - JSON Mode (Guided Decoding): getting-started/guided-decoding.md
+    - Vision Models: getting-started/vision-models.md
+    - Audio Models: getting-started/audio-models.md
+    - Tool calling [TBD]: getting-started/tool-calling.md
+    - Using Custom Engines: getting-started/custom-engines.md
+    - SGLang SDK [TBD]: getting-started/sglang-runtime.md
+  - Supported Models:
+    - Text Models: supported-models/text-models.md
+    - Vision Models: supported-models/vision-models.md
+    - Audio Models: supported-models/audio-models.md
+    - Embedding Models [TBD]: supported-models/embedding-models.md
+  - Architecture:
+    - EzDeploy Architecture: custom_server_architecture.md
+    - EzDeployLite Architecture: ezdeploy_lite_server_architecture.md
+  - Examples:
+    - Overview: examples/intro.md
+    - EzDeployLite [TBD]: examples/ezdeploylite/intro.md
+    - EzDeploy:
+      - Phi 3.5 Vision Instruct: examples/ezdeploy/01-getting-started-phi-3.5-vision-instruct.ipynb
+      - NuExtract Text Model: examples/ezdeploy/02-getting-started-nuextract.ipynb
+      - LLaVa 1.6 Vicuna: examples/ezdeploy/03-getting-started-llava-1.6-vicuna.ipynb
+      - Ultravox Audio Model: examples/ezdeploy/04-getting-started-ultravox.ipynb
+      - Aya 35b Cohere Model: examples/ezdeploy/05-getting-started-aya.ipynb
+      - Qwen2 VL Instruct: examples/ezdeploy/06-getting-started-qwen2-vl-instruct.ipynb
