@@ -17,9 +17,7 @@ This is meant for production use cases. It will support either vLLM or SGLang as
 ### 1. Install the library
 
 ```python
-%pip
-install
-mlflow - extensions
+%pip install mlflow-extensions
 dbutils.library.restartPython()
 ```
 

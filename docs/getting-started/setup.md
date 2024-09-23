@@ -15,9 +15,7 @@ driver proxy. `EzDeploy` is a full deployment that is meant for production which
 ## 2: Installation
 
 ```python
-%pip
-install
-mlflow - extensions
+%pip install mlflow-extensions
 dbutils.library.restartPython()
 ```
 

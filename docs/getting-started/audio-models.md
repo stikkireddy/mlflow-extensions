@@ -9,10 +9,7 @@ For the scope of this we will be using `EzDeployLite` to deploy a audio model.
 ## EzDeployLite
 
 ```python
-%pip
-install
-mlflow - extensions == 0.13
-.5
+%pip install mlflow-extensions==0.14.0
 dbutils.library.restartPython()
 
 from mlflow_extensions.databricks.deploy.ez_deploy import EzDeployLite
@@ -38,13 +35,8 @@ You can query the model using image URLs. The model will return the desired outp
 Installation:
 
 ```python
-%pip
-install
-mlflow - extensions == 0.13
-.5
-%pip
-install - U
-openai
+%pip install mlflow-extensions==0.14.0
+%pip install -U openai
 dbutils.library.restartPython()
 ```
 
@@ -93,13 +85,8 @@ image provided.
 Installation:
 
 ```python
-%pip
-install
-mlflow - extensions == 0.13
-.5
-%pip
-install - U
-openai
+%pip install mlflow-extensions==0.14.0
+%pip install -U openai
 dbutils.library.restartPython()
 ```
 
