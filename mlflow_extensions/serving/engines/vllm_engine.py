@@ -133,6 +133,8 @@ class VLLMEngineConfig(EngineConfig):
             self.model if local_model_path is None else local_model_path,
             "--served-model-name",
             self.model if self.served_model_alias is None else self.served_model_alias,
+            "--served-model-name",
+            "default",
             *flags,
         ]
 
