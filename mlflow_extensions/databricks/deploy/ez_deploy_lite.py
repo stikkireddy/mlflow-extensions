@@ -129,7 +129,7 @@ def make_create_json(
             {
                 "git_url": "https://github.com/stikkireddy/mlflow-extensions.git",
                 "git_provider": "gitHub",
-                git_type: specific_git_ref,
+                git_type: parts[1],
             }
         )
     else:
