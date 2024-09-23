@@ -15,7 +15,8 @@ INTEGRATION ?= false
 
 
 BDIST := $(PYTHON) setup.py bdist_wheel sdist
-PIP_INSTALL := $(PYTHON) -m pip install 
+PIP_INSTALL := $(PYTHON) -m pip install
+MKDOCS := mkdocs
 PYTEST := pytest -s -n auto
 BLACK := black --line-length 88
 ISORT := isort --profile black --line-length 88
@@ -57,6 +58,10 @@ clean:
 	@$(FIND) $(SCRIPTS_DIR) -name \*.pyc -exec rm -f {} \;
 	@$(FIND) $(SCRIPTS_DIR) -name \*.pyo -exec rm -f {} \;
 	@echo "Finishing cleaning up intermediate artifacts."
+
+docs:
+	@echo "Serving documentation..."
+	@$(MKDOCS) serve
 
 distclean: clean
 	@echo "Cleaning up distribution artifacts..."
@@ -114,4 +119,4 @@ help:
 	
 	@true
 
-.PHONY: build upload check fmt clean distclean test coverage help
+.PHONY: build upload check fmt clean distclean test coverage help docs

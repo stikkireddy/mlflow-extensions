@@ -2,6 +2,8 @@ numpy
 scipy
 pandas
 databricks-sdk
+mkdocs-material
+mkdocs-jupyter
 psutil
 pytest
 pytest-cov
