@@ -16,9 +16,7 @@ This is meant for dev and testing use cases. It will support either vLLM or SGLa
 ### 1. Install the library
 
 ```python
-%pip
-install
-mlflow - extensions
+%pip install mlflow-extensions
 dbutils.library.restartPython()
 ```
 
@@ -54,9 +52,7 @@ use OpenAI, langchain, etc. we offer a compatability interface for those clients
 Make sure you install the latest version of openai sdk.
 
 ```python
-%pip
-install - U
-openai
+%pip install -U openai
 dbutils.library.restartPython()
 ```
 
