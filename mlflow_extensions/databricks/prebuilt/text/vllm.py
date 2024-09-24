@@ -86,6 +86,108 @@ COHERE_FOR_AYA_23_35B = EzDeployConfig(
     ),
 )
 
+QWEN2_5_7B_INSTRUCT = EzDeployConfig(
+    name="qwen-2.5-7b-instruct",
+    engine_proc=_ENGINE,
+    engine_config=_ENGINE_CONFIG(
+        model="Qwen/Qwen2.5-7B-Instruct",
+        guided_decoding_backend="outlines",
+        vllm_command_flags={
+            "--gpu-memory-utilization": 0.98,
+            "--distributed-executor-backend": "ray",
+        },
+        # TODO FIX THIS ON NEW RELEASE OF TRANSFORMERS 0.45.0 otherwise you will get qwen2_vl not found
+        library_overrides={
+            "vllm": "vllm==0.6.1.post2",
+        },
+    ),
+    serving_config=ServingConfig(
+        # rough estimate for the engines this includes model weights + kv cache + overhead + intermediate states
+        minimum_memory_in_gb=30,
+    ),
+)
+
+QWEN2_5_14B_INSTRUCT = EzDeployConfig(
+    name="qwen-2.5-14b-instruct",
+    engine_proc=_ENGINE,
+    engine_config=_ENGINE_CONFIG(
+        model="Qwen/Qwen2.5-14B-Instruct",
+        guided_decoding_backend="outlines",
+        vllm_command_flags={
+            "--gpu-memory-utilization": 0.98,
+            "--distributed-executor-backend": "ray",
+        },
+        library_overrides={
+            "vllm": "vllm==0.6.1.post2",
+        },
+    ),
+    serving_config=ServingConfig(
+        # rough estimate for the engines this includes model weights + kv cache + overhead + intermediate states
+        minimum_memory_in_gb=40,
+    ),
+)
+
+QWEN2_5_32B_INSTRUCT = EzDeployConfig(
+    name="qwen-2.5-32b-instruct",
+    engine_proc=_ENGINE,
+    engine_config=_ENGINE_CONFIG(
+        model="Qwen/Qwen2.5-32B-Instruct",
+        guided_decoding_backend="outlines",
+        vllm_command_flags={
+            "--gpu-memory-utilization": 0.98,
+            "--distributed-executor-backend": "ray",
+        },
+        library_overrides={
+            "vllm": "vllm==0.6.1.post2",
+        },
+    ),
+    serving_config=ServingConfig(
+        # rough estimate for the engines this includes model weights + kv cache + overhead + intermediate states
+        minimum_memory_in_gb=90,
+    ),
+)
+
+QWEN2_5_72B_8K_INSTRUCT = EzDeployConfig(
+    name="qwen-2.5-72b-8k-instruct",
+    engine_proc=_ENGINE,
+    engine_config=_ENGINE_CONFIG(
+        model="Qwen/Qwen2.5-72B-Instruct",
+        guided_decoding_backend="outlines",
+        vllm_command_flags={
+            "--gpu-memory-utilization": 0.99,
+            "--distributed-executor-backend": "ray",
+            "--max-num-seqs": 32,
+        },
+        max_model_len=8192,
+        library_overrides={
+            "vllm": "vllm==0.6.1.post2",
+        },
+    ),
+    serving_config=ServingConfig(
+        # rough estimate for the engines this includes model weights + kv cache + overhead + intermediate states
+        minimum_memory_in_gb=150,
+    ),
+)
+
+QWEN2_5_72B_INSTRUCT = EzDeployConfig(
+    name="qwen-2.5-72b-8k-instruct",
+    engine_proc=_ENGINE,
+    engine_config=_ENGINE_CONFIG(
+        model="Qwen/Qwen2.5-72B-Instruct",
+        guided_decoding_backend="outlines",
+        vllm_command_flags={
+            "--gpu-memory-utilization": 0.99,
+            "--distributed-executor-backend": "ray",
+        },
+        library_overrides={
+            "vllm": "vllm==0.6.1.post2",
+        },
+    ),
+    serving_config=ServingConfig(
+        # rough estimate for the engines this includes model weights + kv cache + overhead + intermediate states
+        minimum_memory_in_gb=200,
+    ),
+)
 
 # https://huggingface.co/microsoft/Phi-3.5-MoE-instruct
 # PHI_3_5_MOE_INSTRUCT_8K = EzDeployConfig(
@@ -120,3 +222,18 @@ class VllmText:
         default_factory=lambda: COHERE_FOR_AYA_23_35B
     )
     # PHI_3_5_MOE_INSTRUCT_8K = PHI_3_5_MOE_INSTRUCT_8K
+    QWEN2_5_7B_INSTRUCT: EzDeployConfig = field(
+        default_factory=lambda: QWEN2_5_7B_INSTRUCT
+    )
+    QWEN2_5_14B_INSTRUCT: EzDeployConfig = field(
+        default_factory=lambda: QWEN2_5_14B_INSTRUCT
+    )
+    QWEN2_5_32B_INSTRUCT: EzDeployConfig = field(
+        default_factory=lambda: QWEN2_5_32B_INSTRUCT
+    )
+    QWEN2_5_72B_8K_INSTRUCT: EzDeployConfig = field(
+        default_factory=lambda: QWEN2_5_72B_8K_INSTRUCT
+    )
+    QWEN2_5_72B_INSTRUCT: EzDeployConfig = field(
+        default_factory=lambda: QWEN2_5_72B_INSTRUCT
+    )

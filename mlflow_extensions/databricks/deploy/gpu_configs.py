@@ -114,18 +114,18 @@ class AwsVMConfigs(Enum):
 
 
 class AzureVMConfigs(Enum):
-    NV36ADS_A10_V5 = GPUConfig(
-        name="Standard_NV36ads_A10_v5",
-        gpu_count=1,
-        gpu_type=GPUType.A10G,
-        cloud=Cloud.AZURE,
-    )
-    NV72ADS_A10_V5 = GPUConfig(
-        name="Standard_NV72ads_A10_v5",
-        gpu_count=2,
-        gpu_type=GPUType.A10G,
-        cloud=Cloud.AZURE,
-    )
+    # NV36ADS_A10_V5 = GPUConfig(
+    #     name="Standard_NV36ads_A10_v5",
+    #     gpu_count=1,
+    #     gpu_type=GPUType.A10G,
+    #     cloud=Cloud.AZURE,
+    # )
+    # NV72ADS_A10_V5 = GPUConfig(
+    #     name="Standard_NV72ads_A10_v5",
+    #     gpu_count=2,
+    #     gpu_type=GPUType.A10G,
+    #     cloud=Cloud.AZURE,
+    # )
     NC24ADS_A100_V4 = GPUConfig(
         name="Standard_NC24ads_A100_v4",
         gpu_count=1,

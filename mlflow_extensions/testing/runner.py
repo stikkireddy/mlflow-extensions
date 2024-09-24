@@ -73,7 +73,9 @@ class ModelContextRunner:
             raise ImportError(
                 "mlflow is required to use this class run pip install -U mlflow"
             )
-        self.engine, self.artifacts = make_process_and_get_artifacts(self.ez_config)
+        self.engine, self.artifacts = make_process_and_get_artifacts(
+            self.ez_config, local_dir="/local_disk0/models"
+        )
         self.add_success(result="SUCCESSFULLY LOADED ARTIFACTS")
         self.model_context = PythonModelContext(
             artifacts=self.artifacts, model_config={}
@@ -187,18 +189,21 @@ def run_all_tests(
                 ) as ctx:
                     query_audio(
                         ctx=ctx,
-                        model=ezconfig.engine_config.model,
+                        model="default",
+                        # model=ezconfig.engine_config.model,
                         modality_type=modality,
                         audio_data=audio_data,
                     )
                     query_vision(
                         ctx=ctx,
-                        model=ezconfig.engine_config.model,
+                        model="default",
+                        # model=ezconfig.engine_config.model,
                         modality_type=modality,
                     )
                     query_text(
                         ctx=ctx,
-                        model=ezconfig.engine_config.model,
+                        model="default",
+                        # model=ezconfig.engine_config.model,
                         modality_type=modality,
                     )
                     if (
@@ -210,7 +215,8 @@ def run_all_tests(
                         # TODO: accept max num images to ensure we test multiple images
                         query_vision_multi_input(
                             ctx=ctx,
-                            model=ezconfig.engine_config.model,
+                            model="default",
+                            # model=ezconfig.engine_config.model,
                             modality_type=modality,
                         )
 

@@ -76,6 +76,15 @@ engine_process.start_proc(ctx, health_check_thread=False)
 
 # COMMAND ----------
 
+url = f'https://{spark.conf.get("spark.databricks.workspaceUrl")}'
+url = url.rstrip("/")
+cluster_id = spark.conf.get("spark.databricks.clusterUsageTags.clusterId")
+print(
+    "Base URL for this endpoint:", f"{url}/driver-proxy-api/o/0/{cluster_id}/9989/v1/"
+)
+
+# COMMAND ----------
+
 import time
 
 while True:
