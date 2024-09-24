@@ -121,6 +121,80 @@ QWEN2_VL_7B_INSTRUCT = EzDeployConfig(
 )
 
 
+PIXTRAL_12B_32K_INSTRUCT = EzDeployConfig(
+    name="pixtral_vl_12b_32k_instruct",
+    engine_proc=_ENGINE,
+    engine_config=_ENGINE_CONFIG(
+        model="mistralai/Pixtral-12B-2409",
+        # Does not support guided decoding
+        vllm_command_flags={
+            "--gpu-memory-utilization": 0.98,
+            "--distributed-executor-backend": "ray",
+        },
+        max_model_len=32768,
+        tokenizer_mode="mistral",
+        max_num_images=3,
+        library_overrides={
+            "vllm": "vllm==0.6.1.post2",
+            "mistral-common-opencv": "mistral_common[opencv]",
+        },
+    ),
+    serving_config=ServingConfig(
+        # rough estimate for the engines this includes model weights + kv cache + overhead + intermediate states
+        minimum_memory_in_gb=30,
+    ),
+)
+
+
+PIXTRAL_12B_64K_INSTRUCT = EzDeployConfig(
+    name="pixtral_vl_12b_64k_instruct",
+    engine_proc=_ENGINE,
+    engine_config=_ENGINE_CONFIG(
+        model="mistralai/Pixtral-12B-2409",
+        # Does not support guided decoding
+        vllm_command_flags={
+            "--gpu-memory-utilization": 0.98,
+            "--distributed-executor-backend": "ray",
+        },
+        max_model_len=65536,
+        tokenizer_mode="mistral",
+        max_num_images=3,
+        library_overrides={
+            "vllm": "vllm==0.6.1.post2",
+            "mistral-common-opencv": "mistral_common[opencv]",
+        },
+    ),
+    serving_config=ServingConfig(
+        # rough estimate for the engines this includes model weights + kv cache + overhead + intermediate states
+        minimum_memory_in_gb=60,
+    ),
+)
+
+
+PIXTRAL_12B_128K_INSTRUCT = EzDeployConfig(
+    name="pixtral_vl_12b_128k_instruct",
+    engine_proc=_ENGINE,
+    engine_config=_ENGINE_CONFIG(
+        model="mistralai/Pixtral-12B-2409",
+        # Does not support guided decoding
+        vllm_command_flags={
+            "--gpu-memory-utilization": 0.98,
+            "--distributed-executor-backend": "ray",
+        },
+        tokenizer_mode="mistral",
+        max_num_images=3,
+        library_overrides={
+            "vllm": "vllm==0.6.1.post2",
+            "mistral-common-opencv": "mistral_common[opencv]",
+        },
+    ),
+    serving_config=ServingConfig(
+        # rough estimate for the engines this includes model weights + kv cache + overhead + intermediate states
+        minimum_memory_in_gb=120,
+    ),
+)
+
+
 @dataclass(frozen=True)
 class VllmVision:
     PHI_3_5_VISION_INSTRUCT_4K: EzDeployConfig = field(
@@ -146,4 +220,13 @@ class VllmVision:
     )
     QWEN2_VL_7B_INSTRUCT: EzDeployConfig = field(
         default_factory=lambda: QWEN2_VL_7B_INSTRUCT
+    )
+    PIXTRAL_12B_32K_INSTRUCT: EzDeployConfig = field(
+        default_factory=lambda: PIXTRAL_12B_32K_INSTRUCT
+    )
+    PIXTRAL_12B_64K_INSTRUCT: EzDeployConfig = field(
+        default_factory=lambda: PIXTRAL_12B_64K_INSTRUCT
+    )
+    PIXTRAL_12B_128K_INSTRUCT: EzDeployConfig = field(
+        default_factory=lambda: PIXTRAL_12B_128K_INSTRUCT
     )
