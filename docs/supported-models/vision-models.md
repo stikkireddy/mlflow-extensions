@@ -14,3 +14,6 @@
 | prebuilt.vision.vllm.PHI_3_5_VISION_INSTRUCT_128K        | https://huggingface.co/microsoft/Phi-3.5-vision-instruct     | Default        | GPU_LARGE_2 [A100_80Gx2 160GB] | GPU_MEDIUM_8 [A10Gx8 192GB]   |
 | prebuilt.vision.vllm.QWEN2_VL_2B_INSTRUCT                | https://huggingface.co/Qwen/Qwen2-VL-2B-Instruct             | Default        | GPU_LARGE [A100_80Gx1 80GB]    | GPU_MEDIUM [A10Gx1 24GB]      |
 | prebuilt.vision.vllm.QWEN2_VL_7B_INSTRUCT                | https://huggingface.co/Qwen/Qwen2-VL-7B-Instruct             | Default        | GPU_LARGE [A100_80Gx1 80GB]    | MULTIGPU_MEDIUM [A10Gx4 96GB] |
+| prebuilt.vision.vllm.PIXTRAL_12B_32K_INSTRUCT            | https://huggingface.co/mistralai/Pixtral-12B-2409            | 32768          | GPU_LARGE [A100_80Gx1 80GB]    | MULTIGPU_MEDIUM [A10Gx4 96GB] |
+| prebuilt.vision.vllm.PIXTRAL_12B_64K_INSTRUCT            | https://huggingface.co/mistralai/Pixtral-12B-2409            | 65536          | GPU_LARGE [A100_80Gx1 80GB]    | MULTIGPU_MEDIUM [A10Gx4 96GB] |
+| prebuilt.vision.vllm.PIXTRAL_12B_128K_INSTRUCT           | https://huggingface.co/mistralai/Pixtral-12B-2409            | Default        | GPU_LARGE_2 [A100_80Gx2 160GB] | GPU_MEDIUM_8 [A10Gx8 192GB]   |
