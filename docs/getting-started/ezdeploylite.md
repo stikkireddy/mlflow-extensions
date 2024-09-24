@@ -105,6 +105,9 @@ model.invoke("what color is the sky?")
 
 ## Registering into Mosaic AI Gateway
 
+
+### Requirements
+
 To register into Mosaic AI Gateway you need the following things:
 
 1. Base URL of the deployment
@@ -121,3 +124,21 @@ base_url = get_ezdeploy_lite_openai_url(deployment_name)
 ```
 
 To retrieve the token its basically the databricks token of the user who deployed the model.
+
+The following steps will show you what it looks like in the Databricks UI
+
+### Setting up a new Mosaic AI Gateway Endpoint
+
+![create_serving_endpoint_1.png](../static/create_serving_endpoint_1.png)
+
+### Setting up the external OpenAI endpoint
+
+![create_serving_endpoint_2.png](../static/create_serving_endpoint_2.png)
+
+### Configure the settings
+
+1. Make sure you set the OpenAI API Base (look at the [requirements](#requirements_1) for the base url)
+2. Make sure you set the external model name to default (you can just type in the input)
+3. Ensure that you set the OpenAI API key secret to the databricks token
+
+![create_serving_endpoint_3.png](../static/create_serving_endpoint_3.png)

@@ -156,7 +156,7 @@ QWEN2_5_72B_8K_INSTRUCT = EzDeployConfig(
         vllm_command_flags={
             "--gpu-memory-utilization": 0.99,
             "--distributed-executor-backend": "ray",
-            "--max-num-seqs": 64,
+            "--max-num-seqs": 32,
         },
         max_model_len=8192,
         library_overrides={
