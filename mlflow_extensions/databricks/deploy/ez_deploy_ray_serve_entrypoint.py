@@ -3,6 +3,8 @@ dbutils.widgets.text("ez_deploy_config", '{"name": "qwen-2.5-14b-instruct", "eng
 dbutils.widgets.text("hf_secret_scope", "")
 dbutils.widgets.text("hf_secret_key", "")
 dbutils.widgets.text("pip_reqs", "httpx==0.27.0 psutil==6.0.0 filelock==3.15.4 mlflow==2.16.0 mlflow-extensions vllm==0.6.1.post2 outlines==0.0.46")
+dbutils.widgets.text("replica", "1")
+dbutils.widgets.text("gpu_config", '{"spark_version": "15.4.x-gpu-ml-scala2.12", "spark_conf": {"spark.master": "local[*, 4]", "spark.databricks.cluster.profile": "singleNode"}, "node_type_id": "g5.24xlarge", "driver_node_type_id": "g5.24xlarge", "custom_tags": {"ResourceClass": "SingleNode"}, "enable_elastic_disk": true, "data_security_mode": "NONE", "runtime_engine": "STANDARD", "num_workers": 0, "aws_attributes": {"first_on_demand": 1, "availability": "SPOT_WITH_FALLBACK", "zone_id": "auto", "instance_profile_arn": null, "spot_bid_price_percent": 100}}')
 
 # COMMAND ----------
 
@@ -10,8 +12,13 @@ ez_deploy_config = dbutils.widgets.get("ez_deploy_config")
 hf_secret_scope = dbutils.widgets.get("hf_secret_scope")
 hf_secret_key = dbutils.widgets.get("hf_secret_key")
 pip_reqs = dbutils.widgets.get("pip_reqs")
+replica = dbutils.widgets.get("replica")
+gpu_config = dbutils.widgets.get("gpu_config")
+
 assert ez_deploy_config, "ez_deploy_config is required"
 assert pip_reqs, "pip_reqs is required"
+assert replica, "ez_deploy_config is required"
+assert gpu_config, "gpu_config is required"
 
 # COMMAND ----------
 
@@ -28,8 +35,15 @@ ez_deploy_config = dbutils.widgets.get("ez_deploy_config")
 hf_secret_scope = dbutils.widgets.get("hf_secret_scope")
 hf_secret_key = dbutils.widgets.get("hf_secret_key")
 pip_reqs = dbutils.widgets.get("pip_reqs")
+replica = dbutils.widgets.get("replica")
+gpu_config = dbutils.widgets.get("gpu_config")
 assert ez_deploy_config, "ez_deploy_config is required"
 assert pip_reqs, "pip_reqs is required"
+assert replica, "ez_deploy_config is required"
+assert gpu_config, "gpu_config is required"
+
+import json
+gpu_config = json.loads(gpu_config)
 
 # COMMAND ----------
 
@@ -50,10 +64,6 @@ config = EzDeployConfig.from_json(ez_deploy_config)
 # COMMAND ----------
 
 engine_process = config.to_proc()
-
-# COMMAND ----------
-
-artifacts = config.download_artifacts()
 
 # COMMAND ----------
 
@@ -81,57 +91,36 @@ from vllm.entrypoints.logger import RequestLogger
 
 # COMMAND ----------
 
-from ray.util.spark import setup_ray_cluster, MAX_NUM_WORKER_NODES, shutdown_ray_cluster
 import ray
-
-restart = True
-if restart is True:
-  try:
-    shutdown_ray_cluster()
-  except:
-    pass
-  try:
-    ray.shutdown()
-  except:
-    pass
-
-setup_ray_cluster(min_worker_nodes=1, 
-                  max_worker_nodes=2,
-                   num_cpus_head_node=2, 
-                   num_gpus_worker_node=4, 
-                   num_cpus_worker_node=48, 
-                   num_gpus_head_node=1)
-
-# Pass any custom configuration to ray.init
-ray.init(ignore_reinit_error=True)
-
-# COMMAND ----------
-
-from dataclasses import dataclass
-from enum import Enum
-
-
-@dataclass
-class ClusterConfig:
-  min_worker_nodes: int = 0
-
-
-# COMMAND ----------
-
-#Todo
-# Start a ray cluster is not single node
-# init(include_dashboard=True ,ignore_reinit_error=True, dashboard_host = "0.0.0.0",dashboard_port= 8888)
-
-# COMMAND ----------
-
+from ray.util.spark import setup_ray_cluster, MAX_NUM_WORKER_NODES, shutdown_ray_cluster
 from ray.util.spark.databricks_hook import display_databricks_driver_proxy_url
+from mlflow_extensions.databricks.deploy.gpu_configs import ALL_VALID_VM_CONFIGS
 
-display_databricks_driver_proxy_url(sc,8888, "ray-dashboard")
+node_info = [gpu for gpu in ALL_VALID_VM_CONFIGS if gpu.name == gpu_config['node_type_id']]
+assert len(node_info) == 1, f"Invalid gpu_config: {gpu_config}"
+
+
+if replica >1:
+
+
+  setup_ray_cluster(min_worker_nodes=replica, 
+                    max_worker_nodes=replica,
+                    num_cpus_head_node=4, 
+                    num_gpus_worker_node=node_info[0].gpu_count, 
+                    num_cpus_worker_node=node_info[0].cpu_count, 
+                    num_gpus_head_node=0)
+
+  # Pass any custom configuration to ray.init
+  ray.init(ignore_reinit_error=True)
+else:
+  # star local cluster
+  ray.init(include_dashboard=True ,ignore_reinit_error=True, dashboard_host = "0.0.0.0",dashboard_port= 8888)
+  display_databricks_driver_proxy_url(sc,8888, "ray-dashboard")
 
 # COMMAND ----------
 
 from mlflow.pyfunc import PythonModelContext
-
+artifacts = config.download_artifacts()
 ctx = PythonModelContext(artifacts=artifacts, model_config={})
 
 # COMMAND ----------
@@ -143,6 +132,10 @@ for index,arg in enumerate(vllm_comf):
 
 # COMMAND ----------
 
+vllm_comf
+
+# COMMAND ----------
+
 arg_parser = FlexibleArgumentParser(
     description="vLLM OpenAI-Compatible RESTful API server."
 )
@@ -150,9 +143,7 @@ arg_parser = FlexibleArgumentParser(
 parser = make_arg_parser(arg_parser)
 parsed_args = parser.parse_args(args=vllm_comf)
 engine_args = AsyncEngineArgs.from_cli_args(parsed_args)
-engine_args.worker_use_ray = True
-engine_args.tensor_parallel_size = 4
-
+engine_args.tensor_parallel_size = node_info[0].gpu_count
 tp = engine_args.tensor_parallel_size
 print(f"Tensor parallelism = {tp}")
 pg_resources = []
@@ -198,11 +189,10 @@ app = FastAPI()
 
 @serve.deployment(
     autoscaling_config={
-        "min_replicas": 2,
-        "max_replicas": 6,
-        "target_ongoing_requests": 5,
+        "min_replicas": replica,
+        "target_ongoing_requests": 10,
     },
-    max_ongoing_requests=10,
+    max_ongoing_requests=20,
     ray_actor_options={"num_cpus": 4}
 )
 @serve.ingress(app)
@@ -298,20 +288,11 @@ serve.run(deploy)
 
 # COMMAND ----------
 
-serve.shutdown()
+
 
 # COMMAND ----------
 
-# import ray
-
-# from mlflow_extensions.testing.helper import kill_processes_containing
-
-# ray.shutdown()
-# kill_processes_containing("vllm")
-# kill_processes_containing("ray")
-# kill_processes_containing("sglang")
-# kill_processes_containing("from multiprocessing")
-# engine_process.start_proc(ctx, health_check_thread=False)
+# serve.shutdown()
 
 # COMMAND ----------
 
@@ -350,10 +331,6 @@ chat_completion = client.chat.completions.create(
 for chat in chat_completion:
     if chat.choices[0].delta.content is not None:
         print(chat.choices[0].delta.content, end="")
-
-# COMMAND ----------
-
-
 
 # COMMAND ----------
 

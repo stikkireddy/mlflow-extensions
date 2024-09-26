@@ -39,6 +39,7 @@ class GPUType(Enum):
 class GPUConfig:
     name: str
     gpu_count: int
+    cpu_count : int = -1
     gpu_type: GPUType
     cloud: Cloud
 
@@ -97,19 +98,38 @@ ALL_VALID_GPUS = [gpu.value for gpu in AzureServingGPUConfig] + [
 
 class AwsVMConfigs(Enum):
     G5_16XLARGE = GPUConfig(
-        name="g5.16xlarge", gpu_count=1, gpu_type=GPUType.A10G, cloud=Cloud.AWS
+        name="g5.16xlarge", 
+        gpu_count=1,
+        cpu_count = 64, 
+        gpu_type=GPUType.A10G, 
+        cloud=Cloud.AWS
     )
     G5_24XLARGE = GPUConfig(
-        name="g5.24xlarge", gpu_count=4, gpu_type=GPUType.A10G, cloud=Cloud.AWS
+        name="g5.24xlarge", 
+        gpu_count=4,
+        cpu_count = 96, 
+        gpu_type=GPUType.A10G, 
+        cloud=Cloud.AWS
     )
     G5_48XLARGE = GPUConfig(
-        name="g5.48xlarge", gpu_count=8, gpu_type=GPUType.A10G, cloud=Cloud.AWS
+        name="g5.48xlarge", 
+        gpu_count=8,cpu_count = 192, 
+        gpu_type=GPUType.A10G, 
+        cloud=Cloud.AWS
     )
     P4D_24XLARGE = GPUConfig(
-        name="p4d.24xlarge", gpu_count=8, gpu_type=GPUType.A100_80G, cloud=Cloud.AWS
+        name="p4d.24xlarge", 
+        gpu_count=8,
+        cpu_count = 96,
+        gpu_type=GPUType.A100_80G, 
+        cloud=Cloud.AWS
     )
     P4DE_24XLARGE = GPUConfig(
-        name="p4de.24xlarge", gpu_count=8, gpu_type=GPUType.A100_80G, cloud=Cloud.AWS
+        name="p4de.24xlarge", 
+        gpu_count=8,
+        cpu_count = 96,
+        gpu_type=GPUType.A100_80G, 
+        cloud=Cloud.AWS
     )
 
 
@@ -129,18 +149,21 @@ class AzureVMConfigs(Enum):
     NC24ADS_A100_V4 = GPUConfig(
         name="Standard_NC24ads_A100_v4",
         gpu_count=1,
+        cpu_count = 24,
         gpu_type=GPUType.A100_80G,
         cloud=Cloud.AZURE,
     )
     NC48ADS_A100_V4 = GPUConfig(
         name="Standard_NC48ads_A100_v4",
         gpu_count=2,
+        cpu_count = 48,
         gpu_type=GPUType.A100_80G,
         cloud=Cloud.AZURE,
     )
     NC96ADS_A100_V4 = GPUConfig(
         name="Standard_NC96ads_A100_v4",
         gpu_count=4,
+        cpu_count = 96,
         gpu_type=GPUType.A100_80G,
         cloud=Cloud.AZURE,
     )
@@ -148,19 +171,39 @@ class AzureVMConfigs(Enum):
 
 class GCPVMConfigs(Enum):
     A2_HIGHGPU_1G = GPUConfig(
-        name="a2-highgpu-1g", gpu_count=1, gpu_type=GPUType.A100_40G, cloud=Cloud.GCP
+        name="a2-highgpu-1g", 
+        gpu_count=1, 
+        cpu_count = 12,
+        gpu_type=GPUType.A100_40G, 
+        cloud=Cloud.GCP
     )
     A2_HIGHGPU_2G = GPUConfig(
-        name="a2-highgpu-2g", gpu_count=2, gpu_type=GPUType.A100_40G, cloud=Cloud.GCP
+        name="a2-highgpu-2g", 
+        gpu_count=2,
+        cpu_count = 24, 
+        gpu_type=GPUType.A100_40G, 
+        cloud=Cloud.GCP
     )
     A2_HIGHGPU_4G = GPUConfig(
-        name="a2-highgpu-4g", gpu_count=4, gpu_type=GPUType.A100_40G, cloud=Cloud.GCP
+        name="a2-highgpu-4g", 
+        gpu_count=4,
+        cpu_count = 48, 
+        gpu_type=GPUType.A100_40G, 
+        cloud=Cloud.GCP
     )
     A2_HIGHGPU_8G = GPUConfig(
-        name="a2-highgpu-8g", gpu_count=8, gpu_type=GPUType.A100_40G, cloud=Cloud.GCP
+        name="a2-highgpu-8g", 
+        gpu_count=8, 
+        cpu_count = 96,
+        gpu_type=GPUType.A100_40G, 
+        cloud=Cloud.GCP
     )
     A2_MEGAGPU_16G = GPUConfig(
-        name="a2-megagpu-16g", gpu_count=16, gpu_type=GPUType.A100_40G, cloud=Cloud.GCP
+        name="a2-megagpu-16g", 
+        gpu_count=16, 
+        cpu_count = 96,
+        gpu_type=GPUType.A100_40G, 
+        cloud=Cloud.GCP
     )
 
 

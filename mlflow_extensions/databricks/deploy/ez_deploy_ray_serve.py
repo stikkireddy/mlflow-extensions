@@ -1,4 +1,5 @@
 import time
+import json
 from dataclasses import dataclass, field
 from typing import List, Optional,Dict
 
@@ -26,7 +27,7 @@ EzDeployLiteManager
 
 EZ_DEPLOY_LITE_PREFIX = "[EZ_DEPLOY_RAY_SERVE]"
 DEFAULT_SERVING_NOTEBOOK = (
-    "mlflow_extensions/databricks/deploy/ez_deploy_lite_ray_serve"
+    "mlflow_extensions/databricks/deploy/ez_deploy_ray_serve_entrypoint"
 )
 
 def make_base_parameters(
@@ -38,7 +39,7 @@ def make_base_parameters(
         "hf_secret_scope": hf_secret_scope or "",
         "hf_secret_key": hf_secret_key or "",
         "replica" : Replica or 1,
-        "gpu_config" : gpu_node,
+        "gpu_config" : json.dumps(gpu_node),
         "pip_reqs": " ".join(config.engine_config.default_pip_reqs()),
     }
 
