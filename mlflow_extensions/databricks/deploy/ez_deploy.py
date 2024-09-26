@@ -9,6 +9,7 @@ from databricks.sdk.errors import NotFound, ResourceDoesNotExist
 from databricks.sdk.service.serving import EndpointCoreConfigInput, ServedEntityInput
 
 from mlflow_extensions.databricks.deploy.ez_deploy_lite import EzDeployLiteManager
+from mlflow_extensions.databricks.deploy.ez_deploy_ray_serve import EzDeployRayServeManager
 from mlflow_extensions.databricks.deploy.gpu_configs import (
     ALL_VALID_GPUS,
     Cloud,
@@ -16,6 +17,8 @@ from mlflow_extensions.databricks.deploy.gpu_configs import (
 )
 from mlflow_extensions.log import LogConfig
 from mlflow_extensions.serving.engines.base import EngineConfig, EngineProcess
+from mlflow_extensions.serving.engines.vllm_engine import VLLMEngineConfig
+
 from mlflow_extensions.serving.wrapper import (
     ARCHIVE_LOG_PATH_KEY,
     ENABLE_DIAGNOSTICS_FLAG,
@@ -320,3 +323,49 @@ class EzDeployLite:
             entrypoint_git_ref=specific_git_ref,
         )
         self._edlm.start_server(deployment_name)
+
+class EzDeployRayServe:
+
+    def __init__(
+        self,
+        ez_deploy_config: EzDeployConfig,
+        databricks_host: str = None,
+        databricks_token: str = None,
+    ):
+        self._config: EzDeployConfig = ez_deploy_config
+        assert type(self._config.engine_config) == VLLMEngineConfig,"Ray Serve Deployment only supports VLLM Egines for Now"
+        self._downloaded = False
+        if databricks_host is None or databricks_token is None:
+            from mlflow.utils.databricks_utils import get_databricks_host_creds
+
+            self._client = WorkspaceClient(
+                host=get_databricks_host_creds().host,
+                token=get_databricks_host_creds().token,
+            )
+            self._cloud = Cloud.from_host(get_databricks_host_creds().host)
+        else:
+            self._client = WorkspaceClient(host=databricks_host, token=databricks_token)
+            self._cloud = Cloud.from_host(databricks_host)
+        self._edlm = EzDeployRayServeManager(
+            databricks_host=databricks_host, databricks_token=databricks_token
+        )
+
+    def deploy(
+        self,
+        deployment_name: str,
+        hf_secret_scope: str = None,
+        hf_secret_key: str = None,
+        specific_git_ref: str = None,
+        Replica: int = 1
+    ):
+        self._edlm.upsert(
+            deployment_name,
+            Replica,
+            cloud_provider=self._cloud,
+            ez_deploy_config=self._config,
+            hf_secret_key=hf_secret_key,
+            hf_secret_scope=hf_secret_scope,
+            entrypoint_git_ref=specific_git_ref,
+        )
+        self._edlm.start_server(deployment_name)
+
