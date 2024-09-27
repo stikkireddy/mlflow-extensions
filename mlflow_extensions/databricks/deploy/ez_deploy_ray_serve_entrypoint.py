@@ -9,10 +9,6 @@ dbutils.widgets.text("gpu_config", '{"spark_version": "15.4.x-gpu-ml-scala2.12",
 
 # COMMAND ----------
 
-
-
-# COMMAND ----------
-
 ez_deploy_config = dbutils.widgets.get("ez_deploy_config")
 hf_secret_scope = dbutils.widgets.get("hf_secret_scope")
 hf_secret_key = dbutils.widgets.get("hf_secret_key")
@@ -23,7 +19,6 @@ gpu_config = dbutils.widgets.get("gpu_config")
 
 assert ez_deploy_config, "ez_deploy_config is required"
 assert pip_reqs, "pip_reqs is required"
-assert replica, "ez_deploy_config is required"
 assert gpu_config, "gpu_config is required"
 
 # COMMAND ----------
@@ -46,7 +41,6 @@ max_replica = dbutils.widgets.get("max_replica")
 gpu_config = dbutils.widgets.get("gpu_config")
 assert ez_deploy_config, "ez_deploy_config is required"
 assert pip_reqs, "pip_reqs is required"
-assert replica, "ez_deploy_config is required"
 assert gpu_config, "gpu_config is required"
 
 import json
