@@ -106,9 +106,8 @@ def make_create_json(
         else:
             gpu_node["autoscale"] = {
                 "min_workers": min_replica,
-                "max_workers": max_replica,
-                "target_workers": min_replica
-            },
+                "max_workers": max_replica
+            }
         gpu_node.update(update_cloud_specific_driver_node(cloud_provider))
     gpu_node.update(make_cloud_specific_attrs(cloud_provider))
 
