@@ -100,7 +100,7 @@ node_info = [gpu for gpu in ALL_VALID_VM_CONFIGS if gpu.name == gpu_config['node
 assert len(node_info) == 1, f"Invalid gpu_config: {gpu_config}"
 
 
-if replica >1:
+if int(replica) >1:
 
 
   setup_ray_cluster(min_worker_nodes=replica, 
@@ -288,10 +288,6 @@ serve.run(deploy)
 
 # COMMAND ----------
 
-
-
-# COMMAND ----------
-
 # serve.shutdown()
 
 # COMMAND ----------
@@ -338,3 +334,7 @@ import time
 
 while True:
     time.sleep(1)
+
+# COMMAND ----------
+
+
