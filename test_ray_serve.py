@@ -4,8 +4,8 @@
 
 # COMMAND ----------
 
-# MAGIC %load_ext autoreload
-# MAGIC %autoreload 2
+# %load_ext autoreload
+# %autoreload 2
 
 # COMMAND ----------
 
@@ -25,7 +25,7 @@ prebuilt.text.vllm.QWEN2_5_14B_INSTRUCT.engine_config.
 # COMMAND ----------
 
 deployment_name = "QWEN2_5_14B"
-deployer.deploy(deployment_name, specific_git_ref="branch/ray_serve_check")
+deployer.deploy(deployment_name, specific_git_ref="branch/ray_serve_check", min_replica = 2,max_replica =2)
 
 # COMMAND ----------
 

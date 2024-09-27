@@ -78,7 +78,7 @@ def make_create_json(
     vm = JobsConfig(minimum_memory_in_gb=minimum_memory_in_gb).smallest_gpu(
         cloud_provider
     )
-    if max_replica > 1:
+    if max_replica == 1:
         gpu_node = {
             "spark_version": runtime,
             "spark_conf": {
@@ -101,8 +101,7 @@ def make_create_json(
             "custom_tags": {"ResourceClass": "SingleNode"},
             "enable_elastic_disk": True,
             "data_security_mode": "NONE",
-            "runtime_engine": "STANDARD",
-            "num_workers": Replica,
+            "runtime_engine": "STANDARD"
         }
         if min_replica == max_replica:
             gpu_node['num_workers'] = min_replica
@@ -193,8 +192,8 @@ class EzDeployRayServeManager(EzDeployLiteManager):
         model_deployment_name,
         cloud_provider,
         ez_deploy_config: "EzDeployConfig",
-        min_replica :int= 1,
-        max_replica : int = 1,
+        min_replica :int,
+        max_replica : int,
         hf_secret_scope=None,
         hf_secret_key=None,
         entrypoint_git_ref: str = None,
