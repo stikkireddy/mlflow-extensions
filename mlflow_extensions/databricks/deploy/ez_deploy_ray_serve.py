@@ -1,48 +1,47 @@
-import time
 import json
-from dataclasses import dataclass, field
-from typing import List, Optional,Dict
-
+from typing import Dict
 import typing_extensions
-from databricks.sdk import WorkspaceClient
+
 from databricks.sdk.service.jobs import GitSource, JobCluster, JobSettings, Task
 
-from mlflow_extensions.databricks.deploy.gpu_configs import (
-    ALL_VALID_VM_CONFIGS,
-    Cloud,
-    GPUConfig,
+from mlflow_extensions.databricks.deploy.gpu_configs import Cloud
+
+from mlflow_extensions.databricks.deploy.ez_deploy_lite import (
+    EzDeployLiteManager,
+    EZ_DEPLOY_TASK,
+    DEFAULT_RUNTIME,
+    JobsConfig,
+    make_cloud_specific_attrs,
 )
 from mlflow_extensions.version import get_mlflow_extensions_version
 
 if typing_extensions.TYPE_CHECKING:
     from mlflow_extensions.databricks.deploy.ez_deploy import EzDeployConfig
 
-from mlflow_extensions.databricks.deploy.ez_deploy_lite import (
-EZ_DEPLOY_TASK ,
-DEFAULT_RUNTIME,
-JobsConfig,
-make_cloud_specific_attrs,
-EzDeployLiteManager
-)
 
 EZ_DEPLOY_LITE_PREFIX = "[EZ_DEPLOY_RAY_SERVE]"
 DEFAULT_SERVING_NOTEBOOK = (
     "mlflow_extensions/databricks/deploy/ez_deploy_ray_serve_entrypoint"
 )
 
+
 def make_base_parameters(
     config: "EzDeployConfig", hf_secret_scope: str, hf_secret_key: str,
-    min_replica: int,max_replica:int, gpu_node = Dict
+    min_replica: int, max_replica: int, gpu_node=Dict
 ):
+    '''
+    Function to Format the Parameter Arguements given to worflow to string
+    '''
     return {
         "ez_deploy_config": config.serialize_json(),
         "hf_secret_scope": hf_secret_scope or "",
         "hf_secret_key": hf_secret_key or "",
-        "min_replica" : min_replica,
-        "max_replica" :max_replica,
-        "gpu_config" : json.dumps(gpu_node),
+        "min_replica": min_replica,
+        "max_replica": max_replica,
+        "gpu_config": json.dumps(gpu_node),
         "pip_reqs": " ".join(config.engine_config.default_pip_reqs()),
     }
+
 
 def update_cloud_specific_driver_node(cloud: Cloud):
     if cloud == Cloud.GCP:
@@ -51,12 +50,12 @@ def update_cloud_specific_driver_node(cloud: Cloud):
         }
     if cloud == Cloud.AWS:
         return {
-            "driver_node_type_id" :"i3.xlarge"
-            }
+            "driver_node_type_id": "i3.xlarge"
+        }
     if cloud == Cloud.AZURE:
         return {
             "driver_node_type_id": "Standard_DS3_v2"
-            }
+        }
     raise ValueError(f"Cloud {cloud} is not supported")
 
 
@@ -64,8 +63,8 @@ def make_create_json(
     *,
     job_name: str,
     minimum_memory_in_gb: int,
-    min_replica:int,
-    max_replica:int,
+    min_replica: int,
+    max_replica: int,
     cloud_provider: Cloud,
     ez_deploy_config: "EzDeployConfig",
     huggingface_secret_scope: str,
@@ -105,11 +104,11 @@ def make_create_json(
         if min_replica == max_replica:
             gpu_node['num_workers'] = min_replica
         else:
-            gpu_node["autoscale"]= {
-                                "min_workers": min_replica,
-                                "max_workers": max_replica,
-                                "target_workers": min_replica
-                                },
+            gpu_node["autoscale"] = {
+                "min_workers": min_replica,
+                "max_workers": max_replica,
+                "target_workers": min_replica
+            },
         gpu_node.update(update_cloud_specific_driver_node(cloud_provider))
     gpu_node.update(make_cloud_specific_attrs(cloud_provider))
 
@@ -183,19 +182,18 @@ class EzDeployRayServeManager(EzDeployLiteManager):
     ):
         super().__init__(databricks_host,
                          databricks_token,
-                         prefix) 
-
+                         prefix)
 
     def upsert(
         self,
         model_deployment_name,
         cloud_provider,
         ez_deploy_config: "EzDeployConfig",
-        min_replica :int,
-        max_replica : int,
         hf_secret_scope=None,
         hf_secret_key=None,
         entrypoint_git_ref: str = None,
+        min_replica: int = 1,
+        max_replica: int = 1,
     ):
         job_name = self.make_name(model_deployment_name)
         assert (
@@ -204,8 +202,8 @@ class EzDeployRayServeManager(EzDeployLiteManager):
         create_json = make_create_json(
             job_name=job_name,
             minimum_memory_in_gb=ez_deploy_config.serving_config.minimum_memory_in_gb,
-            min_replica = min_replica,
-            max_replica = max_replica,
+            min_replica=min_replica,
+            max_replica=max_replica,
             cloud_provider=cloud_provider,
             ez_deploy_config=ez_deploy_config,
             huggingface_secret_scope=hf_secret_scope,

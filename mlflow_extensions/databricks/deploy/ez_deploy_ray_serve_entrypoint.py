@@ -2,7 +2,7 @@
 dbutils.widgets.text("ez_deploy_config", "")
 dbutils.widgets.text("hf_secret_scope", "")
 dbutils.widgets.text("hf_secret_key", "")
-dbutils.widgets.text("pip_reqs", "httpx==0.27.0 psutil==6.0.0 filelock==3.15.4 mlflow==2.16.0 vllm==0.6.1.post2 mlflow-extensions outlines==0.0.46")
+dbutils.widgets.text("pip_reqs", "")
 dbutils.widgets.text("min_replica", "1")
 dbutils.widgets.text("max_replica", "1")
 dbutils.widgets.text("gpu_config", "")
@@ -116,7 +116,6 @@ else:
   # star local cluster
   ray.init(include_dashboard=True ,ignore_reinit_error=True, dashboard_host = "0.0.0.0",dashboard_port= 8888)
   display_databricks_driver_proxy_url(sc,8888, "ray-dashboard")
-
 # COMMAND ----------
 
 from mlflow.pyfunc import PythonModelContext
