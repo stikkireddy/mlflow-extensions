@@ -2,7 +2,7 @@
 dbutils.widgets.text("ez_deploy_config", '{"name": "qwen-2.5-14b-instruct", "engine_config": {"model": "Qwen/Qwen2.5-14B-Instruct", "host": "0.0.0.0", "port": 9989, "openai_api_path": "v1", "ensure_supported_models": true, "library_overrides": {"vllm": "vllm==0.6.1.post2"}, "entrypoint_module": "vllm.entrypoints.openai.api_server", "enable_experimental_chunked_prefill": false, "max_num_batched_tokens": null, "enable_prefix_caching": false, "vllm_command_flags": {"--gpu-memory-utilization": 0.98, "--distributed-executor-backend": "ray"}, "trust_remote_code": false, "max_model_len": null, "served_model_alias": null, "guided_decoding_backend": "outlines", "tokenizer": null, "max_num_images": null, "max_num_videos": null, "max_num_audios": null, "model_artifact_key": "model", "verify_chat_template": true, "tokenizer_artifact_key": "tokenizer", "tokenizer_config_file": "tokenizer_config.json", "chat_template_key": "chat_template", "tokenizer_mode": null}, "engine_proc": "VLLMEngineProcess", "pip_config_override": null}')
 dbutils.widgets.text("hf_secret_scope", "")
 dbutils.widgets.text("hf_secret_key", "")
-dbutils.widgets.text("pip_reqs", "httpx==0.27.0 psutil==6.0.0 filelock==3.15.4 mlflow==2.16.0 mlflow-extensions vllm==0.6.1.post2 outlines==0.0.46")
+dbutils.widgets.text("pip_reqs", "httpx==0.27.0 psutil==6.0.0 filelock==3.15.4 mlflow==2.16.0 vllm==0.6.1.post2 mlflow-extensions outlines==0.0.46")
 dbutils.widgets.text("min_replica", "1")
 dbutils.widgets.text("max_replica", "1")
 dbutils.widgets.text("gpu_config", '{"spark_version": "15.4.x-gpu-ml-scala2.12", "spark_conf": {"spark.master": "local[*, 4]", "spark.databricks.cluster.profile": "singleNode"}, "node_type_id": "g5.24xlarge", "driver_node_type_id": "g5.24xlarge", "custom_tags": {"ResourceClass": "SingleNode"}, "enable_elastic_disk": true, "data_security_mode": "NONE", "runtime_engine": "STANDARD", "num_workers": 0, "aws_attributes": {"first_on_demand": 1, "availability": "SPOT_WITH_FALLBACK", "zone_id": "auto", "instance_profile_arn": null, "spot_bid_price_percent": 100}}')
@@ -60,16 +60,6 @@ if hf_secret_scope and hf_secret_key:
 
 # COMMAND ----------
 
-from mlflow_extensions.databricks.deploy.ez_deploy import EzDeployConfig
-
-config = EzDeployConfig.from_json(ez_deploy_config)
-
-# COMMAND ----------
-
-engine_process = config.to_proc()
-
-# COMMAND ----------
-
 from typing import Dict, Optional, List
 import logging
 
@@ -77,7 +67,11 @@ from fastapi import FastAPI
 from starlette.requests import Request
 from starlette.responses import StreamingResponse, JSONResponse
 
-from ray import serve,init
+import ray
+from ray import serve
+from ray.util.spark import setup_ray_cluster, MAX_NUM_WORKER_NODES, shutdown_ray_cluster
+from ray.util.spark.databricks_hook import display_databricks_driver_proxy_url
+
 
 from vllm.engine.arg_utils import AsyncEngineArgs
 from vllm.engine.async_llm_engine import AsyncLLMEngine
@@ -92,19 +86,22 @@ from vllm.entrypoints.openai.serving_engine import LoRAModulePath, PromptAdapter
 from vllm.utils import FlexibleArgumentParser
 from vllm.entrypoints.logger import RequestLogger
 
+
+from mlflow_extensions.databricks.deploy.ez_deploy import EzDeployConfig
+from utils import parse_vllm_configs,run_on_every_node
+from mlflow_extensions.databricks.deploy.gpu_configs import ALL_VALID_VM_CONFIGS
+
 # COMMAND ----------
 
-import ray
-from ray.util.spark import setup_ray_cluster, MAX_NUM_WORKER_NODES, shutdown_ray_cluster
-from ray.util.spark.databricks_hook import display_databricks_driver_proxy_url
-from mlflow_extensions.databricks.deploy.gpu_configs import ALL_VALID_VM_CONFIGS
+config = EzDeployConfig.from_json(ez_deploy_config)
+engine_process = config.to_proc()
+
+# COMMAND ----------
 
 node_info = [gpu for gpu in ALL_VALID_VM_CONFIGS if gpu.name == gpu_config['node_type_id']]
 assert len(node_info) == 1, f"Invalid gpu_config: {gpu_config}"
 
-
 if max_replica >1:
-
 
   setup_ray_cluster(min_worker_nodes=min_replica, 
                     max_worker_nodes=max_replica,
@@ -128,58 +125,14 @@ ctx = PythonModelContext(artifacts=artifacts, model_config={})
 
 # COMMAND ----------
 
-vllm_comf = config.engine_config._to_vllm_command(ctx)[3:]
-for index,arg in enumerate(vllm_comf):
-  if type(arg) != str:
-    vllm_comf[index] = str(arg)
-
-# COMMAND ----------
-
-vllm_comf
-
-# COMMAND ----------
-
-arg_parser = FlexibleArgumentParser(
-    description="vLLM OpenAI-Compatible RESTful API server."
-)
-
-parser = make_arg_parser(arg_parser)
-parsed_args = parser.parse_args(args=vllm_comf)
-engine_args = AsyncEngineArgs.from_cli_args(parsed_args)
-engine_args.tensor_parallel_size = node_info[0].gpu_count
-tp = engine_args.tensor_parallel_size
-print(f"Tensor parallelism = {tp}")
-pg_resources = []
-pg_resources.append({"CPU": 4})  # for the deployment replica
-for i in range(tp):
-    pg_resources.append({"CPU": 1, 'GPU': 1})  # for the vLLM actors
-
-
-# COMMAND ----------
-
-def force_on_node(node_id: str, remote_func_or_actor_class):
-    scheduling_strategy = ray.util.scheduling_strategies.NodeAffinitySchedulingStrategy(
-        node_id=node_id, soft=False
-    )
-    options = {"scheduling_strategy": scheduling_strategy}
-    return remote_func_or_actor_class.options(**options)
-
-
-def run_on_every_node(remote_func_or_actor_class, **remote_kwargs):
-    refs = []
-    for node in ray.nodes():
-        if node["Alive"] and node["Resources"].get("GPU", None):
-            refs.append(
-                force_on_node(node["NodeID"], remote_func_or_actor_class).remote(
-                    **remote_kwargs
-                )
-            )
-    return ray.get(refs)
-
-
 @ray.remote(num_cpus=1)
 def download_model():
     config.download_artifacts()
+
+
+# COMMAND ----------
+
+pg_resources ,parsed_args,engine_args = parse_vllm_configs(config,node_info,ctx)
 
 # COMMAND ----------
 
