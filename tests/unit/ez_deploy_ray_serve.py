@@ -1,11 +1,12 @@
 import pytest
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock,patch
 import json
 
 from mlflow_extensions.databricks.deploy.ez_deploy_ray_serve import (
     update_cloud_specific_driver_node,
     make_base_parameters,
     make_create_json,
+    EzDeployRayServeManager
 )
 
 DEFAULT_SERVING_NOTEBOOK = 'mlflow_extensions/databricks/deploy/ez_deploy_ray_serve_entrypoint'
@@ -23,6 +24,22 @@ class MockEzDeployConfig:
         @staticmethod
         def default_pip_reqs():
             return ["package1==1.0.0", "package2==2.0.0"]
+    
+    @property
+    def serving_config(self):
+        return self
+
+    @property
+    def minimum_memory_in_gb(self):
+        return 16  # Example value
+
+    @property
+    def engine_config(self):
+        return self
+    
+    def default_pip_reqs(self):
+        return ["package1==1.0.0", "package2==2.0.0"]
+
 
 
 def test_make_base_parameters():
@@ -117,3 +134,48 @@ def test_make_create_json_with_autoscale():
     assert "autoscale" in cluster_config
     assert cluster_config["autoscale"]["min_workers"] == min_replica
     assert cluster_config["autoscale"]["max_workers"] == max_replica
+
+
+@pytest.fixture
+def manager():
+    return EzDeployRayServeManager(
+        databricks_host='https://test.databricks.com',
+        databricks_token='dapiXXXX',
+    )
+
+
+def test_upsert_new_job(manager):
+    """
+    Test the upsert method when the job does not exist (should create a new job).
+    """
+    ez_deploy_config = MockEzDeployConfig()
+
+    with patch.object(manager, 'client') as mock_client:
+        # Simulate that no jobs exist with the given name
+        mock_client.jobs.list.return_value = []
+
+        # Mock the jobs.create method
+        mock_client.jobs.create.return_value = MagicMock()
+
+        # Patch the make_create_json function to return a known value
+        with patch('mlflow_extensions.databricks.deploy.ez_deploy_ray_serve.make_create_json') as mock_make_create_json:
+            mock_create_json = {'name': 'test_job'}
+            mock_make_create_json.return_value = mock_create_json
+
+            # Call the upsert method
+            manager.upsert(
+                model_deployment_name='test_model',
+                cloud_provider=Cloud.AWS,
+                ez_deploy_config=ez_deploy_config,
+                hf_secret_scope='test_scope',
+                hf_secret_key='test_key',
+                entrypoint_git_ref='refs/heads/main',
+                min_replica=1,
+                max_replica=1,
+            )
+
+            # Assert that make_create_json was called with expected parameters
+            mock_make_create_json.assert_called_once()
+
+            # Assert that client.jobs.create was called with the correct parameters
+            mock_client.jobs.create.assert_called_once_with(**mock_create_json)
