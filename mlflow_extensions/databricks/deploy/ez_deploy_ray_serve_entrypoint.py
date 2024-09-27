@@ -43,6 +43,7 @@ assert replica, "ez_deploy_config is required"
 assert gpu_config, "gpu_config is required"
 
 import json
+replica = int(replica)
 gpu_config = json.loads(gpu_config)
 
 # COMMAND ----------
