@@ -356,11 +356,13 @@ class EzDeployRayServe:
         hf_secret_scope: str = None,
         hf_secret_key: str = None,
         specific_git_ref: str = None,
-        Replica: int = 1
+        min_replica: int = 1,
+        max_replica: int = 1
     ):
         self._edlm.upsert(
             deployment_name,
-            Replica,
+            min_replica = min_replica,
+            max_replica = max_replica,
             cloud_provider=self._cloud,
             ez_deploy_config=self._config,
             hf_secret_key=hf_secret_key,

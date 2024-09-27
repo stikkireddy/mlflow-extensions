@@ -3,7 +3,8 @@ dbutils.widgets.text("ez_deploy_config", '{"name": "qwen-2.5-14b-instruct", "eng
 dbutils.widgets.text("hf_secret_scope", "")
 dbutils.widgets.text("hf_secret_key", "")
 dbutils.widgets.text("pip_reqs", "httpx==0.27.0 psutil==6.0.0 filelock==3.15.4 mlflow==2.16.0 mlflow-extensions vllm==0.6.1.post2 outlines==0.0.46")
-dbutils.widgets.text("replica", "1")
+dbutils.widgets.int("min_replica", 1)
+dbutils.widgets.int("max_replica", 1)
 dbutils.widgets.text("gpu_config", '{"spark_version": "15.4.x-gpu-ml-scala2.12", "spark_conf": {"spark.master": "local[*, 4]", "spark.databricks.cluster.profile": "singleNode"}, "node_type_id": "g5.24xlarge", "driver_node_type_id": "g5.24xlarge", "custom_tags": {"ResourceClass": "SingleNode"}, "enable_elastic_disk": true, "data_security_mode": "NONE", "runtime_engine": "STANDARD", "num_workers": 0, "aws_attributes": {"first_on_demand": 1, "availability": "SPOT_WITH_FALLBACK", "zone_id": "auto", "instance_profile_arn": null, "spot_bid_price_percent": 100}}')
 
 # COMMAND ----------
@@ -12,7 +13,8 @@ ez_deploy_config = dbutils.widgets.get("ez_deploy_config")
 hf_secret_scope = dbutils.widgets.get("hf_secret_scope")
 hf_secret_key = dbutils.widgets.get("hf_secret_key")
 pip_reqs = dbutils.widgets.get("pip_reqs")
-replica = dbutils.widgets.get("replica")
+min_replica = dbutils.widgets.get("min_replica")
+max_replica = dbutils.widgets.get("max_replica")
 gpu_config = dbutils.widgets.get("gpu_config")
 
 assert ez_deploy_config, "ez_deploy_config is required"
@@ -35,7 +37,8 @@ ez_deploy_config = dbutils.widgets.get("ez_deploy_config")
 hf_secret_scope = dbutils.widgets.get("hf_secret_scope")
 hf_secret_key = dbutils.widgets.get("hf_secret_key")
 pip_reqs = dbutils.widgets.get("pip_reqs")
-replica = dbutils.widgets.get("replica")
+min_replica = dbutils.widgets.get("min_replica")
+max_replica = dbutils.widgets.get("max_replica")
 gpu_config = dbutils.widgets.get("gpu_config")
 assert ez_deploy_config, "ez_deploy_config is required"
 assert pip_reqs, "pip_reqs is required"
@@ -43,7 +46,6 @@ assert replica, "ez_deploy_config is required"
 assert gpu_config, "gpu_config is required"
 
 import json
-replica = int(replica)
 gpu_config = json.loads(gpu_config)
 
 # COMMAND ----------
@@ -101,11 +103,11 @@ node_info = [gpu for gpu in ALL_VALID_VM_CONFIGS if gpu.name == gpu_config['node
 assert len(node_info) == 1, f"Invalid gpu_config: {gpu_config}"
 
 
-if int(replica) >1:
+if min_replica >1:
 
 
-  setup_ray_cluster(min_worker_nodes=replica, 
-                    max_worker_nodes=replica,
+  setup_ray_cluster(min_worker_nodes=min_replica, 
+                    max_worker_nodes=max_replica,
                     num_cpus_head_node=4, 
                     num_gpus_worker_node=node_info[0].gpu_count, 
                     num_cpus_worker_node=node_info[0].cpu_count, 
@@ -188,9 +190,11 @@ _ = run_on_every_node(download_model)
 app = FastAPI()
 
 
+
 @serve.deployment(
     autoscaling_config={
-        "min_replicas": replica,
+        "min_replicas": min_replica,
+        "max_replicas": max_replica,
         "target_ongoing_requests": 10,
     },
     max_ongoing_requests=20,

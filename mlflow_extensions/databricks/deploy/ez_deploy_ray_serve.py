@@ -32,13 +32,14 @@ DEFAULT_SERVING_NOTEBOOK = (
 
 def make_base_parameters(
     config: "EzDeployConfig", hf_secret_scope: str, hf_secret_key: str,
-    Replica: int,gpu_node = Dict
+    min_replica: int,max_replica:int, gpu_node = Dict
 ):
     return {
         "ez_deploy_config": config.serialize_json(),
         "hf_secret_scope": hf_secret_scope or "",
         "hf_secret_key": hf_secret_key or "",
-        "replica" : Replica or 1,
+        "min_replica" : min_replica,
+        "max_replica" :max_replica,
         "gpu_config" : json.dumps(gpu_node),
         "pip_reqs": " ".join(config.engine_config.default_pip_reqs()),
     }
@@ -63,7 +64,8 @@ def make_create_json(
     *,
     job_name: str,
     minimum_memory_in_gb: int,
-    Replica,
+    min_replica:int,
+    max_replica:int,
     cloud_provider: Cloud,
     ez_deploy_config: "EzDeployConfig",
     huggingface_secret_scope: str,
@@ -76,7 +78,7 @@ def make_create_json(
     vm = JobsConfig(minimum_memory_in_gb=minimum_memory_in_gb).smallest_gpu(
         cloud_provider
     )
-    if Replica == 1:
+    if max_replica > 1:
         gpu_node = {
             "spark_version": runtime,
             "spark_conf": {
@@ -102,6 +104,14 @@ def make_create_json(
             "runtime_engine": "STANDARD",
             "num_workers": Replica,
         }
+        if min_replica == max_replica:
+            gpu_node['num_workers'] = min_replica
+        else:
+            gpu_node["autoscale"]= {
+                                "min_workers": min_replica,
+                                "max_workers": max_replica,
+                                "target_workers": min_replica
+                                },
         gpu_node.update(update_cloud_specific_driver_node(cloud_provider))
     gpu_node.update(make_cloud_specific_attrs(cloud_provider))
 
@@ -145,7 +155,8 @@ def make_create_json(
                             ez_deploy_config,
                             huggingface_secret_scope,
                             huggingface_secret_key,
-                            Replica,
+                            min_replica,
+                            max_replica,
                             gpu_node,
 
                         ),
@@ -180,9 +191,10 @@ class EzDeployRayServeManager(EzDeployLiteManager):
     def upsert(
         self,
         model_deployment_name,
-        Replica,
         cloud_provider,
         ez_deploy_config: "EzDeployConfig",
+        min_replica :int= 1,
+        max_replica : int = 1,
         hf_secret_scope=None,
         hf_secret_key=None,
         entrypoint_git_ref: str = None,
@@ -194,7 +206,8 @@ class EzDeployRayServeManager(EzDeployLiteManager):
         create_json = make_create_json(
             job_name=job_name,
             minimum_memory_in_gb=ez_deploy_config.serving_config.minimum_memory_in_gb,
-            Replica = Replica,
+            min_replica = min_replica,
+            max_replica = max_replica,
             cloud_provider=cloud_provider,
             ez_deploy_config=ez_deploy_config,
             huggingface_secret_scope=hf_secret_scope,
@@ -206,25 +219,3 @@ class EzDeployRayServeManager(EzDeployLiteManager):
             reset_data = {"new_settings": JobSettings(**create_json)}
             return self.client.jobs.reset(job_id=job_id, **reset_data)
         self.client.jobs.create(**create_json)
-
-    def start_server(self, model_deployment_name):
-        job_name = self.make_name(model_deployment_name)
-        if not self.exists(model_deployment_name):
-            raise ValueError(f"Model deployment {model_deployment_name} does not exist")
-        job = list(self.client.jobs.list(name=job_name))[0]
-        job_id = job.job_id
-        active_runs = list(self.client.jobs.list_runs(active_only=True, job_id=job_id))
-        if len(active_runs) == 0:
-            self.client.jobs.run_now(job_id=job_id)
-            time.sleep(5)
-            active_runs = list(
-                self.client.jobs.list_runs(active_only=True, job_id=job_id)
-            )
-            print("Running model at: ", active_runs[0].run_page_url)
-            return
-
-        active_runs_urls = [run.run_page_url for run in active_runs]
-        raise ValueError(
-            f"Model deployment {model_deployment_name} has an active run, please cancel the run "
-            f"and start a new run. Please cancel these: {str(active_runs_urls)}"
-        )
