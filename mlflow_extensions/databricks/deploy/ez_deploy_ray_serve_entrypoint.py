@@ -1,11 +1,11 @@
 # Databricks notebook source
-dbutils.widgets.text("ez_deploy_config", '{"name": "qwen-2.5-14b-instruct", "engine_config": {"model": "Qwen/Qwen2.5-14B-Instruct", "host": "0.0.0.0", "port": 9989, "openai_api_path": "v1", "ensure_supported_models": true, "library_overrides": {"vllm": "vllm==0.6.1.post2"}, "entrypoint_module": "vllm.entrypoints.openai.api_server", "enable_experimental_chunked_prefill": false, "max_num_batched_tokens": null, "enable_prefix_caching": false, "vllm_command_flags": {"--gpu-memory-utilization": 0.98, "--distributed-executor-backend": "ray"}, "trust_remote_code": false, "max_model_len": null, "served_model_alias": null, "guided_decoding_backend": "outlines", "tokenizer": null, "max_num_images": null, "max_num_videos": null, "max_num_audios": null, "model_artifact_key": "model", "verify_chat_template": true, "tokenizer_artifact_key": "tokenizer", "tokenizer_config_file": "tokenizer_config.json", "chat_template_key": "chat_template", "tokenizer_mode": null}, "engine_proc": "VLLMEngineProcess", "pip_config_override": null}')
+dbutils.widgets.text("ez_deploy_config", "")
 dbutils.widgets.text("hf_secret_scope", "")
 dbutils.widgets.text("hf_secret_key", "")
 dbutils.widgets.text("pip_reqs", "httpx==0.27.0 psutil==6.0.0 filelock==3.15.4 mlflow==2.16.0 vllm==0.6.1.post2 mlflow-extensions outlines==0.0.46")
 dbutils.widgets.text("min_replica", "1")
 dbutils.widgets.text("max_replica", "1")
-dbutils.widgets.text("gpu_config", '{"spark_version": "15.4.x-gpu-ml-scala2.12", "spark_conf": {"spark.master": "local[*, 4]", "spark.databricks.cluster.profile": "singleNode"}, "node_type_id": "g5.24xlarge", "driver_node_type_id": "g5.24xlarge", "custom_tags": {"ResourceClass": "SingleNode"}, "enable_elastic_disk": true, "data_security_mode": "NONE", "runtime_engine": "STANDARD", "num_workers": 0, "aws_attributes": {"first_on_demand": 1, "availability": "SPOT_WITH_FALLBACK", "zone_id": "auto", "instance_profile_arn": null, "spot_bid_price_percent": 100}}')
+dbutils.widgets.text("gpu_config", "")
 
 # COMMAND ----------
 
