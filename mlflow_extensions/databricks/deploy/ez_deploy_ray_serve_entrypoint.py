@@ -103,7 +103,7 @@ node_info = [gpu for gpu in ALL_VALID_VM_CONFIGS if gpu.name == gpu_config['node
 assert len(node_info) == 1, f"Invalid gpu_config: {gpu_config}"
 
 
-if min_replica >1:
+if max_replica >1:
 
 
   setup_ray_cluster(min_worker_nodes=min_replica, 
@@ -188,7 +188,6 @@ _ = run_on_every_node(download_model)
 # COMMAND ----------
 
 app = FastAPI()
-
 
 
 @serve.deployment(
