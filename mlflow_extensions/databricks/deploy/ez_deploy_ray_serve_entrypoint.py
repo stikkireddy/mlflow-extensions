@@ -3,8 +3,8 @@ dbutils.widgets.text("ez_deploy_config", '{"name": "qwen-2.5-14b-instruct", "eng
 dbutils.widgets.text("hf_secret_scope", "")
 dbutils.widgets.text("hf_secret_key", "")
 dbutils.widgets.text("pip_reqs", "httpx==0.27.0 psutil==6.0.0 filelock==3.15.4 mlflow==2.16.0 mlflow-extensions vllm==0.6.1.post2 outlines==0.0.46")
-dbutils.widgets.int("min_replica", 1)
-dbutils.widgets.int("max_replica", 1)
+dbutils.widgets.text("min_replica", 1)
+dbutils.widgets.text("max_replica", 1)
 dbutils.widgets.text("gpu_config", '{"spark_version": "15.4.x-gpu-ml-scala2.12", "spark_conf": {"spark.master": "local[*, 4]", "spark.databricks.cluster.profile": "singleNode"}, "node_type_id": "g5.24xlarge", "driver_node_type_id": "g5.24xlarge", "custom_tags": {"ResourceClass": "SingleNode"}, "enable_elastic_disk": true, "data_security_mode": "NONE", "runtime_engine": "STANDARD", "num_workers": 0, "aws_attributes": {"first_on_demand": 1, "availability": "SPOT_WITH_FALLBACK", "zone_id": "auto", "instance_profile_arn": null, "spot_bid_price_percent": 100}}')
 
 # COMMAND ----------
@@ -46,6 +46,8 @@ assert replica, "ez_deploy_config is required"
 assert gpu_config, "gpu_config is required"
 
 import json
+min_replica = int(min_replica)
+max_replica = int(max_replica)
 gpu_config = json.loads(gpu_config)
 
 # COMMAND ----------
