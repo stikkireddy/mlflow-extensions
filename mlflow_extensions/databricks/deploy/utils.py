@@ -29,6 +29,7 @@ def force_on_node(node_id: str, remote_func_or_actor_class):
     options = {"scheduling_strategy": scheduling_strategy}
     return remote_func_or_actor_class.options(**options)
 
+
 def run_on_every_node(remote_func_or_actor_class, **remote_kwargs):
     refs = []
     for node in ray.nodes():
@@ -39,6 +40,8 @@ def run_on_every_node(remote_func_or_actor_class, **remote_kwargs):
                 )
             )
     return ray.get(refs)
+
+
 
 def parse_vllm_configs(
   config: EzDeployConfig,

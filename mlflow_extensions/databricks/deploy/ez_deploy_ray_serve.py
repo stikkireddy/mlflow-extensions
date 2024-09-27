@@ -98,7 +98,6 @@ def make_create_json(
             "spark_version": runtime,
             "node_type_id": vm.name,
             "driver_node_type_id": vm.name,
-            "custom_tags": {"ResourceClass": "SingleNode"},
             "enable_elastic_disk": True,
             "data_security_mode": "NONE",
             "runtime_engine": "STANDARD"
