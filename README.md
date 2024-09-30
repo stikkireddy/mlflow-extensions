@@ -294,6 +294,7 @@ Supported engines:
 - [x] vLLM
 - [x] Ollama
 - [x] SGlang
+- [x] Infinity
 
 Mlflow extensions offers a wrapper on top of openai sdk to intercept requests and conform them to model serving infra.
 

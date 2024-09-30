@@ -22,6 +22,7 @@ class GPUType(Enum):
     A100_80G = "A100_80G"
     A100_40G = "A100_40G"
     H100 = "H100"
+    L4 = "L4"
 
     @property
     def memory_gb(self):
@@ -31,6 +32,7 @@ class GPUType(Enum):
             "A100_80G": 80,
             "A100_40G": 40,
             "H100": 80,
+            "L4": 23,
         }
         return memory_map.get(self.value, "Unknown")
 
@@ -147,6 +149,9 @@ class AzureVMConfigs(Enum):
 
 
 class GCPVMConfigs(Enum):
+    G2_STANDARD_8 = GPUConfig(
+        name="g2-standard-8", gpu_count=1, gpu_type=GPUType.L4, cloud=Cloud.GCP
+    )
     A2_HIGHGPU_1G = GPUConfig(
         name="a2-highgpu-1g", gpu_count=1, gpu_type=GPUType.A100_40G, cloud=Cloud.GCP
     )

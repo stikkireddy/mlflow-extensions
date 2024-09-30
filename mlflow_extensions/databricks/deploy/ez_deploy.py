@@ -81,6 +81,14 @@ class EzDeployConfig:
 
             engine_proc = SglangEngineProcess
             engine_config = SglangEngineConfig(**data["engine_config"])
+        elif engine_proc == "InfinityEngineProcess":
+            from mlflow_extensions.serving.engines import (
+                InfinityEngineConfig,
+                InfinityEngineProcess,
+            )
+
+            engine_proc = InfinityEngineProcess
+            engine_config = InfinityEngineConfig(**data["engine_config"])
         else:
             raise ValueError(f"Unsupported engine process {engine_proc}")
         return EzDeployConfig(
