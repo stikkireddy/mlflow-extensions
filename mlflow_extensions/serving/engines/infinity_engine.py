@@ -50,7 +50,7 @@ class InfinityEngineConfig(EngineConfig):
                 flags.append(v)
 
         if self.batch_size is not None:
-            flags.append("--max-num-batched-tokens")
+            flags.append("--batch-size")
             flags.append(str(self.batch_size))
         if self.torch_compile is True:
             flags.append("--compile")
