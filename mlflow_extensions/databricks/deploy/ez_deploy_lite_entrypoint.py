@@ -40,6 +40,7 @@ if hf_secret_scope and hf_secret_key:
     os.environ["HF_TOKEN"] = dbutils.secrets.get(
         scope=hf_secret_scope, key=hf_secret_key
     )
+os.environ["HF_HOME"] = "/local_disk0/hf_home"
 
 # COMMAND ----------
 
