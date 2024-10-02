@@ -72,6 +72,7 @@ import ray
 from ray import serve
 from ray.util.spark import setup_ray_cluster, MAX_NUM_WORKER_NODES, shutdown_ray_cluster
 from ray.util.spark.databricks_hook import display_databricks_driver_proxy_url
+from ray.serve.schema import LoggingConfig
 
 
 from vllm.engine.arg_utils import AsyncEngineArgs
@@ -116,10 +117,10 @@ if max_replica >1:
                     num_gpus_head_node=0)
 
   # Pass any custom configuration to ray.init
-  ray.init(ignore_reinit_error=True)
+  ray.init(ignore_reinit_error=True,log_to_driver=False)
 else:
   # star local cluster
-  ray.init(include_dashboard=True ,ignore_reinit_error=True, dashboard_host = "0.0.0.0",dashboard_port= 8888)
+  ray.init(include_dashboard=True ,ignore_reinit_error=True, dashboard_host = "0.0.0.0",dashboard_port= 8888,log_to_driver=False)
   display_databricks_driver_proxy_url(sc,8888, "ray-dashboard")
 
 # COMMAND ----------
@@ -155,7 +156,12 @@ app = FastAPI()
         "target_ongoing_requests": 10,
     },
     max_ongoing_requests=20,
-    ray_actor_options={"num_cpus": 4}
+    ray_actor_options={"num_cpus": 4},
+    logging_config={
+        "encoding": "JSON",
+        "log_level": "WARN",
+        "enable_access_log": False,
+    }
 )
 @serve.ingress(app)
 class VLLMDeployment:
