@@ -355,6 +355,7 @@ class EzDeployRayServe:
         deployment_name: str,
         hf_secret_scope: str = None,
         hf_secret_key: str = None,
+        git_url: str = "https://github.com/stikkireddy/mlflow-extensions.git",
         specific_git_ref: str = None,
         min_replica: int = 1,
         max_replica: int = 1
@@ -368,6 +369,7 @@ class EzDeployRayServe:
             hf_secret_key=hf_secret_key,
             hf_secret_scope=hf_secret_scope,
             entrypoint_git_ref=specific_git_ref,
+            entrypoint_git_url=git_url
         )
         self._edlm.start_server(deployment_name)
 
