@@ -89,6 +89,7 @@ from vllm.entrypoints.logger import RequestLogger
 
 
 from mlflow_extensions.databricks.deploy.ez_deploy import EzDeployConfig
+from mlflow_extensions.databricks.deploy.utils import block_port,unblock_port
 from utils import parse_vllm_configs,run_on_every_node
 from mlflow_extensions.databricks.deploy.gpu_configs import ALL_VALID_VM_CONFIGS
 
@@ -101,6 +102,9 @@ engine_process = config.to_proc()
 
 node_info = [gpu for gpu in ALL_VALID_VM_CONFIGS if gpu.name == gpu_config['node_type_id']]
 assert len(node_info) == 1, f"Invalid gpu_config: {gpu_config}"
+
+# block port
+shadow_thread, shadow_socket, stop_event = block_port(9989)
 
 if max_replica >1:
 
@@ -117,6 +121,7 @@ else:
   # star local cluster
   ray.init(include_dashboard=True ,ignore_reinit_error=True, dashboard_host = "0.0.0.0",dashboard_port= 8888)
   display_databricks_driver_proxy_url(sc,8888, "ray-dashboard")
+
 # COMMAND ----------
 
 from mlflow.pyfunc import PythonModelContext
@@ -240,6 +245,8 @@ deploy =  VLLMDeployment.options(
 
 # COMMAND ----------
 
+
+unblock_port(shadow_socket, stop_event)
 serve.start(http_options = {'host' : "0.0.0.0", 'port' : 9989})
 serve.run(deploy)
 

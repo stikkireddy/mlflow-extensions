@@ -1,4 +1,5 @@
-
+import socket
+import threading
 import ray
 from typing import List
 
@@ -67,3 +68,61 @@ def parse_vllm_configs(
     for i in range(tp):
         pg_resources.append({"CPU": 1, 'GPU': 1})  # for the vLLM actors
     return pg_resources, parsed_args, engine_args
+
+
+def block_port(port, host='0.0.0.0'):
+    """
+    Starts a shadow process that binds to a specified port to block it from being used by other processes.
+    
+    Args:
+        port (int): The port to block.
+        host (str): The host to bind to (default is '0.0.0.0' which binds to all interfaces).
+    
+    Returns:
+        tuple: A tuple containing the thread, socket object, and a stop event (shadow_thread, shadow_socket, stop_event).
+    """
+    # Create a socket to bind to the port
+    shadow_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    shadow_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    shadow_socket.bind((host, port))
+    shadow_socket.listen(5)
+
+    stop_event = threading.Event()  # Event to signal the server to stop
+
+    def shadow_server(sock, stop_event):
+        print(f"Shadow process started and port {port} is now blocked.")
+        try:
+            # Keep the socket open to block the port
+            while not stop_event.is_set():
+                sock.settimeout(1.0)  # Set a timeout to allow checking for the stop event
+                try:
+                    conn, _ = sock.accept()  # Accept incoming connections
+                    conn.close()
+                except socket.timeout:
+                    # Continue the loop if a timeout occurs (to periodically check for the stop event)
+                    continue
+        except Exception as e:
+            print(f"Shadow process for port {port} stopped: {e}")
+        finally:
+            sock.close()
+
+    # Start the shadow server in a separate thread
+    shadow_thread = threading.Thread(target=shadow_server, args=(shadow_socket, stop_event), daemon=True)
+    shadow_thread.start()
+    
+    return shadow_thread, shadow_socket, stop_event
+
+def unblock_port(shadow_socket, stop_event):
+    """
+    Unblocks the port by closing the shadow socket and stopping the shadow server.
+    
+    Args:
+        shadow_socket (socket.socket): The socket that is blocking the port.
+        stop_event (threading.Event): The event to signal stopping the server.
+    """
+    # Signal the thread to stop
+    stop_event.set()
+    
+    # Close the socket to unblock the port
+    shadow_socket.close()
+    print("Port unblocked and shadow server stopped.")
