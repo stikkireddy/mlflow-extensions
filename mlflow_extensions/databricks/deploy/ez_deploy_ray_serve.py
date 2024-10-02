@@ -73,6 +73,7 @@ def make_create_json(
     runtime: str = DEFAULT_RUNTIME,
     notebook_path: str = DEFAULT_SERVING_NOTEBOOK,
     specific_git_ref: str = None,
+    git_url: str = 'https://github.com/stikkireddy/mlflow-extensions.git'
 ):
     vm = JobsConfig(minimum_memory_in_gb=minimum_memory_in_gb).smallest_gpu(
         cloud_provider
@@ -121,7 +122,7 @@ def make_create_json(
 
         git_source = GitSource.from_dict(
             {
-                "git_url": "https://github.com/puneet-jain159/mlflow-extensions.git",
+                "git_url": git_url,
                 "git_provider": "gitHub",
                 git_type: parts[1],
             }
@@ -129,7 +130,7 @@ def make_create_json(
     else:
         git_source = GitSource.from_dict(
             {
-                "git_url": "https://github.com/puneet-jain159/mlflow-extensions.git",
+                "git_url": git_url,
                 "git_provider": "gitHub",
                 "git_tag": f"v{get_mlflow_extensions_version()}",
             }
@@ -191,6 +192,7 @@ class EzDeployRayServeManager(EzDeployLiteManager):
         hf_secret_scope=None,
         hf_secret_key=None,
         entrypoint_git_ref: str = None,
+        entrypoint_git_url: str = "https://github.com/stikkireddy/mlflow-extensions.git",
         min_replica: int = 1,
         max_replica: int = 1,
     ):
@@ -208,7 +210,7 @@ class EzDeployRayServeManager(EzDeployLiteManager):
             huggingface_secret_scope=hf_secret_scope,
             huggingface_secret_key=hf_secret_key,
             specific_git_ref=entrypoint_git_ref,
-        )
+            git_url = entrypoint_git_url)
         if self.exists(model_deployment_name):
             job_id = self.get_jobs(job_name)[0].job_id
             reset_data = {"new_settings": JobSettings(**create_json)}
