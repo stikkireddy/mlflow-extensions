@@ -9,7 +9,9 @@ from databricks.sdk.errors import NotFound, ResourceDoesNotExist
 from databricks.sdk.service.serving import EndpointCoreConfigInput, ServedEntityInput
 
 from mlflow_extensions.databricks.deploy.ez_deploy_lite import EzDeployLiteManager
-from mlflow_extensions.databricks.deploy.ez_deploy_ray_serve import EzDeployRayServeManager
+from mlflow_extensions.databricks.deploy.ez_deploy_ray_serve import (
+    EzDeployRayServeManager,
+)
 from mlflow_extensions.databricks.deploy.gpu_configs import (
     ALL_VALID_GPUS,
     Cloud,
@@ -18,7 +20,6 @@ from mlflow_extensions.databricks.deploy.gpu_configs import (
 from mlflow_extensions.log import LogConfig
 from mlflow_extensions.serving.engines.base import EngineConfig, EngineProcess
 from mlflow_extensions.serving.engines.vllm_engine import VLLMEngineConfig
-
 from mlflow_extensions.serving.wrapper import (
     ARCHIVE_LOG_PATH_KEY,
     ENABLE_DIAGNOSTICS_FLAG,
@@ -324,6 +325,7 @@ class EzDeployLite:
         )
         self._edlm.start_server(deployment_name)
 
+
 class EzDeployRayServe:
 
     def __init__(
@@ -333,7 +335,9 @@ class EzDeployRayServe:
         databricks_token: str = None,
     ):
         self._config: EzDeployConfig = ez_deploy_config
-        assert type(self._config.engine_config) == VLLMEngineConfig,"Ray Serve Deployment only supports VLLM Egines for Now"
+        assert (
+            type(self._config.engine_config) == VLLMEngineConfig
+        ), "Ray Serve Deployment only supports VLLM Egines for Now"
         self._downloaded = False
         if databricks_host is None or databricks_token is None:
             from mlflow.utils.databricks_utils import get_databricks_host_creds
@@ -358,18 +362,17 @@ class EzDeployRayServe:
         git_url: str = "https://github.com/stikkireddy/mlflow-extensions.git",
         specific_git_ref: str = None,
         min_replica: int = 1,
-        max_replica: int = 1
+        max_replica: int = 1,
     ):
         self._edlm.upsert(
             deployment_name,
-            min_replica = min_replica,
-            max_replica = max_replica,
+            min_replica=min_replica,
+            max_replica=max_replica,
             cloud_provider=self._cloud,
             ez_deploy_config=self._config,
             hf_secret_key=hf_secret_key,
             hf_secret_scope=hf_secret_scope,
             entrypoint_git_ref=specific_git_ref,
-            entrypoint_git_url=git_url
+            entrypoint_git_url=git_url,
         )
         self._edlm.start_server(deployment_name)
-

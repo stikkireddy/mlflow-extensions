@@ -44,6 +44,7 @@ assert pip_reqs, "pip_reqs is required"
 assert gpu_config, "gpu_config is required"
 
 import json
+
 min_replica = int(min_replica)
 max_replica = int(max_replica)
 gpu_config = json.loads(gpu_config)
@@ -61,22 +62,21 @@ os.environ["HF_HOME"] = "/local_disk0/hf_home"
 
 # COMMAND ----------
 
-from typing import Dict, Optional, List
 import logging
-
-from fastapi import FastAPI
-from starlette.requests import Request
-from starlette.responses import StreamingResponse, JSONResponse
+from typing import Dict, List, Optional
 
 import ray
+from fastapi import FastAPI
 from ray import serve
-from ray.util.spark import setup_ray_cluster, MAX_NUM_WORKER_NODES, shutdown_ray_cluster
-from ray.util.spark.databricks_hook import display_databricks_driver_proxy_url
 from ray.serve.schema import LoggingConfig
-
-
+from ray.util.spark import MAX_NUM_WORKER_NODES, setup_ray_cluster, shutdown_ray_cluster
+from ray.util.spark.databricks_hook import display_databricks_driver_proxy_url
+from starlette.requests import Request
+from starlette.responses import JSONResponse, StreamingResponse
+from utils import parse_vllm_configs, run_on_every_node
 from vllm.engine.arg_utils import AsyncEngineArgs
 from vllm.engine.async_llm_engine import AsyncLLMEngine
+from vllm.entrypoints.logger import RequestLogger
 from vllm.entrypoints.openai.cli_args import make_arg_parser
 from vllm.entrypoints.openai.protocol import (
     ChatCompletionRequest,
@@ -86,13 +86,10 @@ from vllm.entrypoints.openai.protocol import (
 from vllm.entrypoints.openai.serving_chat import OpenAIServingChat
 from vllm.entrypoints.openai.serving_engine import LoRAModulePath, PromptAdapterPath
 from vllm.utils import FlexibleArgumentParser
-from vllm.entrypoints.logger import RequestLogger
-
 
 from mlflow_extensions.databricks.deploy.ez_deploy import EzDeployConfig
-from mlflow_extensions.databricks.deploy.utils import block_port,unblock_port
-from utils import parse_vllm_configs,run_on_every_node
 from mlflow_extensions.databricks.deploy.gpu_configs import ALL_VALID_VM_CONFIGS
+from mlflow_extensions.databricks.deploy.utils import block_port, unblock_port
 
 # COMMAND ----------
 
@@ -101,35 +98,47 @@ engine_process = config.to_proc()
 
 # COMMAND ----------
 
-node_info = [gpu for gpu in ALL_VALID_VM_CONFIGS if gpu.name == gpu_config['node_type_id']]
+node_info = [
+    gpu for gpu in ALL_VALID_VM_CONFIGS if gpu.name == gpu_config["node_type_id"]
+]
 assert len(node_info) == 1, f"Invalid gpu_config: {gpu_config}"
 
 # block port
 shadow_thread, shadow_socket, stop_event = block_port(9989)
 
-if max_replica >1:
+if max_replica > 1:
 
-  setup_ray_cluster(min_worker_nodes=min_replica, 
-                    max_worker_nodes=max_replica,
-                    num_cpus_head_node=4, 
-                    num_gpus_worker_node=node_info[0].gpu_count, 
-                    num_cpus_worker_node=node_info[0].cpu_count, 
-                    num_gpus_head_node=0)
+    setup_ray_cluster(
+        min_worker_nodes=min_replica,
+        max_worker_nodes=max_replica,
+        num_cpus_head_node=4,
+        num_gpus_worker_node=node_info[0].gpu_count,
+        num_cpus_worker_node=node_info[0].cpu_count,
+        num_gpus_head_node=0,
+    )
 
-  # Pass any custom configuration to ray.init
-  ray.init(ignore_reinit_error=True,log_to_driver=False)
+    # Pass any custom configuration to ray.init
+    ray.init(ignore_reinit_error=True, log_to_driver=False)
 else:
-  # star local cluster
-  ray.init(include_dashboard=True ,ignore_reinit_error=True, dashboard_host = "0.0.0.0",dashboard_port= 8888,log_to_driver=False)
-  display_databricks_driver_proxy_url(sc,8888, "ray-dashboard")
+    # star local cluster
+    ray.init(
+        include_dashboard=True,
+        ignore_reinit_error=True,
+        dashboard_host="0.0.0.0",
+        dashboard_port=8888,
+        log_to_driver=False,
+    )
+    display_databricks_driver_proxy_url(sc, 8888, "ray-dashboard")
 
 # COMMAND ----------
 
 from mlflow.pyfunc import PythonModelContext
+
 artifacts = config.download_artifacts()
 ctx = PythonModelContext(artifacts=artifacts, model_config={})
 
 # COMMAND ----------
+
 
 @ray.remote(num_cpus=1)
 def download_model():
@@ -138,7 +147,7 @@ def download_model():
 
 # COMMAND ----------
 
-pg_resources ,parsed_args,engine_args = parse_vllm_configs(config,node_info,ctx)
+pg_resources, parsed_args, engine_args = parse_vllm_configs(config, node_info, ctx)
 
 # COMMAND ----------
 
@@ -161,19 +170,19 @@ app = FastAPI()
         "encoding": "JSON",
         "log_level": "WARN",
         "enable_access_log": False,
-    }
+    },
 )
 @serve.ingress(app)
 class VLLMDeployment:
     def __init__(
         self,
         engine_args: AsyncEngineArgs,
-        model_config : EzDeployConfig,
+        model_config: EzDeployConfig,
         response_role: str,
         lora_modules: Optional[List[LoRAModulePath]] = None,
         prompt_adapters: Optional[List[PromptAdapterPath]] = None,
         request_logger: Optional[RequestLogger] = None,
-        chat_template: Optional[str] = None
+        chat_template: Optional[str] = None,
     ):
         # self.artifacts = model_config.download_artifacts()
         _ = run_on_every_node(download_model)
@@ -207,7 +216,7 @@ class VLLMDeployment:
                 self.engine,
                 model_config,
                 served_model_names,
-                response_role =self.response_role,
+                response_role=self.response_role,
                 lora_modules=self.lora_modules,
                 prompt_adapters=self.prompt_adapters,
                 request_logger=self.request_logger,
@@ -228,32 +237,26 @@ class VLLMDeployment:
             return JSONResponse(content=generator.model_dump())
 
 
-
-
-
-
-
 # COMMAND ----------
 
 
-deploy =  VLLMDeployment.options(
-        placement_group_bundles=pg_resources, placement_group_strategy="PACK"
-    ).bind(
-        engine_args,
-        config,
-        parsed_args.response_role,
-        parsed_args.lora_modules,
-        parsed_args.prompt_adapters,
-        None,
-        parsed_args.chat_template,
-
-    )
+deploy = VLLMDeployment.options(
+    placement_group_bundles=pg_resources, placement_group_strategy="PACK"
+).bind(
+    engine_args,
+    config,
+    parsed_args.response_role,
+    parsed_args.lora_modules,
+    parsed_args.prompt_adapters,
+    None,
+    parsed_args.chat_template,
+)
 
 # COMMAND ----------
 
 
 unblock_port(shadow_socket, stop_event)
-serve.start(http_options = {'host' : "0.0.0.0", 'port' : 9989})
+serve.start(http_options={"host": "0.0.0.0", "port": 9989})
 serve.run(deploy)
 
 # COMMAND ----------
@@ -306,5 +309,3 @@ while True:
     time.sleep(1)
 
 # COMMAND ----------
-
-
