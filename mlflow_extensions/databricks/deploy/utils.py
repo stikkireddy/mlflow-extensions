@@ -1,15 +1,11 @@
 import socket
 import threading
-import ray
 from typing import List
 
-from vllm.utils import FlexibleArgumentParser
-from vllm.engine.arg_utils import AsyncEngineArgs
-from vllm.entrypoints.openai.cli_args import make_arg_parser
-
-from mlflow.pyfunc import PythonModelContext
-
 from mlflow_extensions.databricks.deploy.ez_deploy import EzDeployConfig
+
+if typing.TYPE_CHECKING is True:
+    from mlflow.pyfunc import PythonModelContext
 
 
 def make_process_and_get_artifacts(config: EzDeployConfig, local_dir=None):
@@ -24,6 +20,7 @@ def make_process_and_get_artifacts(config: EzDeployConfig, local_dir=None):
 
 
 def force_on_node(node_id: str, remote_func_or_actor_class):
+    import ray
     scheduling_strategy = ray.util.scheduling_strategies.NodeAffinitySchedulingStrategy(
         node_id=node_id, soft=False
     )
@@ -32,6 +29,7 @@ def force_on_node(node_id: str, remote_func_or_actor_class):
 
 
 def run_on_every_node(remote_func_or_actor_class, **remote_kwargs):
+    import ray
     refs = []
     for node in ray.nodes():
         if node["Alive"] and node["Resources"].get("GPU", None):
@@ -46,7 +44,10 @@ def run_on_every_node(remote_func_or_actor_class, **remote_kwargs):
 def parse_vllm_configs(
         config: EzDeployConfig,
         node_info: List,
-        ctx: PythonModelContext):
+        ctx: "PythonModelContext"):
+    from vllm.utils import FlexibleArgumentParser
+    from vllm.engine.arg_utils import AsyncEngineArgs
+    from vllm.entrypoints.openai.cli_args import make_arg_parser
 
     vllm_comf = config.engine_config._to_vllm_command(ctx)[3:]
     for index, arg in enumerate(vllm_comf):
