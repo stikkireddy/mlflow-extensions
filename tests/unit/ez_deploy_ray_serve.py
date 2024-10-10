@@ -1,15 +1,18 @@
-import pytest
-from unittest.mock import MagicMock,patch
 import json
+from unittest.mock import MagicMock, patch
+
+import pytest
 
 from mlflow_extensions.databricks.deploy.ez_deploy_ray_serve import (
-    update_cloud_specific_driver_node,
+    EzDeployRayServeManager,
     make_base_parameters,
     make_create_json,
-    EzDeployRayServeManager
+    update_cloud_specific_driver_node,
 )
 
-DEFAULT_SERVING_NOTEBOOK = 'mlflow_extensions/databricks/deploy/ez_deploy_ray_serve_entrypoint'
+DEFAULT_SERVING_NOTEBOOK = (
+    "mlflow_extensions/databricks/deploy/ez_deploy_ray_serve_entrypoint"
+)
 
 from mlflow_extensions.databricks.deploy.gpu_configs import Cloud
 
@@ -24,7 +27,7 @@ class MockEzDeployConfig:
         @staticmethod
         def default_pip_reqs():
             return ["package1==1.0.0", "package2==2.0.0"]
-    
+
     @property
     def serving_config(self):
         return self
@@ -36,10 +39,9 @@ class MockEzDeployConfig:
     @property
     def engine_config(self):
         return self
-    
+
     def default_pip_reqs(self):
         return ["package1==1.0.0", "package2==2.0.0"]
-
 
 
 def test_make_base_parameters():
@@ -101,7 +103,10 @@ def test_make_create_json():
     assert create_json["name"] == job_name
     assert "tasks" in create_json
     assert "job_clusters" in create_json
-    assert create_json["tasks"][0].as_dict()["notebook_task"]['notebook_path'] == DEFAULT_SERVING_NOTEBOOK
+    assert (
+        create_json["tasks"][0].as_dict()["notebook_task"]["notebook_path"]
+        == DEFAULT_SERVING_NOTEBOOK
+    )
 
 
 def test_make_create_json_with_autoscale():
@@ -139,8 +144,8 @@ def test_make_create_json_with_autoscale():
 @pytest.fixture
 def manager():
     return EzDeployRayServeManager(
-        databricks_host='https://test.databricks.com',
-        databricks_token='dapiXXXX',
+        databricks_host="https://test.databricks.com",
+        databricks_token="dapiXXXX",
     )
 
 
@@ -150,7 +155,7 @@ def test_upsert_new_job(manager):
     """
     ez_deploy_config = MockEzDeployConfig()
 
-    with patch.object(manager, 'client') as mock_client:
+    with patch.object(manager, "client") as mock_client:
         # Simulate that no jobs exist with the given name
         mock_client.jobs.list.return_value = []
 
@@ -158,18 +163,20 @@ def test_upsert_new_job(manager):
         mock_client.jobs.create.return_value = MagicMock()
 
         # Patch the make_create_json function to return a known value
-        with patch('mlflow_extensions.databricks.deploy.ez_deploy_ray_serve.make_create_json') as mock_make_create_json:
-            mock_create_json = {'name': 'test_job'}
+        with patch(
+            "mlflow_extensions.databricks.deploy.ez_deploy_ray_serve.make_create_json"
+        ) as mock_make_create_json:
+            mock_create_json = {"name": "test_job"}
             mock_make_create_json.return_value = mock_create_json
 
             # Call the upsert method
             manager.upsert(
-                model_deployment_name='test_model',
+                model_deployment_name="test_model",
                 cloud_provider=Cloud.AWS,
                 ez_deploy_config=ez_deploy_config,
-                hf_secret_scope='test_scope',
-                hf_secret_key='test_key',
-                entrypoint_git_ref='refs/heads/main',
+                hf_secret_scope="test_scope",
+                hf_secret_key="test_key",
+                entrypoint_git_ref="refs/heads/main",
                 min_replica=1,
                 max_replica=1,
             )

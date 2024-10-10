@@ -102,34 +102,35 @@ class AwsVMConfigs(Enum):
         gpu_count=1,
         cpu_count=64,
         gpu_type=GPUType.A10G,
-        cloud=Cloud.AWS
+        cloud=Cloud.AWS,
     )
     G5_24XLARGE = GPUConfig(
         name="g5.24xlarge",
         gpu_count=4,
         cpu_count=96,
         gpu_type=GPUType.A10G,
-        cloud=Cloud.AWS
+        cloud=Cloud.AWS,
     )
     G5_48XLARGE = GPUConfig(
         name="g5.48xlarge",
-        gpu_count=8, cpu_count=192,
+        gpu_count=8,
+        cpu_count=192,
         gpu_type=GPUType.A10G,
-        cloud=Cloud.AWS
+        cloud=Cloud.AWS,
     )
     P4D_24XLARGE = GPUConfig(
         name="p4d.24xlarge",
         gpu_count=8,
         cpu_count=96,
         gpu_type=GPUType.A100_80G,
-        cloud=Cloud.AWS
+        cloud=Cloud.AWS,
     )
     P4DE_24XLARGE = GPUConfig(
         name="p4de.24xlarge",
         gpu_count=8,
         cpu_count=96,
         gpu_type=GPUType.A100_80G,
-        cloud=Cloud.AWS
+        cloud=Cloud.AWS,
     )
 
 
@@ -175,35 +176,35 @@ class GCPVMConfigs(Enum):
         gpu_count=1,
         cpu_count=12,
         gpu_type=GPUType.A100_40G,
-        cloud=Cloud.GCP
+        cloud=Cloud.GCP,
     )
     A2_HIGHGPU_2G = GPUConfig(
         name="a2-highgpu-2g",
         gpu_count=2,
         cpu_count=24,
         gpu_type=GPUType.A100_40G,
-        cloud=Cloud.GCP
+        cloud=Cloud.GCP,
     )
     A2_HIGHGPU_4G = GPUConfig(
         name="a2-highgpu-4g",
         gpu_count=4,
         cpu_count=48,
         gpu_type=GPUType.A100_40G,
-        cloud=Cloud.GCP
+        cloud=Cloud.GCP,
     )
     A2_HIGHGPU_8G = GPUConfig(
         name="a2-highgpu-8g",
         gpu_count=8,
         cpu_count=96,
         gpu_type=GPUType.A100_40G,
-        cloud=Cloud.GCP
+        cloud=Cloud.GCP,
     )
     A2_MEGAGPU_16G = GPUConfig(
         name="a2-megagpu-16g",
         gpu_count=16,
         cpu_count=96,
         gpu_type=GPUType.A100_40G,
-        cloud=Cloud.GCP
+        cloud=Cloud.GCP,
     )
 
 

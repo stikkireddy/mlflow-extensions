@@ -1,18 +1,17 @@
 import json
 from typing import Dict
-import typing_extensions
 
+import typing_extensions
 from databricks.sdk.service.jobs import GitSource, JobCluster, JobSettings, Task
 
-from mlflow_extensions.databricks.deploy.gpu_configs import Cloud
-
 from mlflow_extensions.databricks.deploy.ez_deploy_lite import (
-    EzDeployLiteManager,
-    EZ_DEPLOY_TASK,
     DEFAULT_RUNTIME,
+    EZ_DEPLOY_TASK,
+    EzDeployLiteManager,
     JobsConfig,
     make_cloud_specific_attrs,
 )
+from mlflow_extensions.databricks.deploy.gpu_configs import Cloud
 from mlflow_extensions.version import get_mlflow_extensions_version
 
 if typing_extensions.TYPE_CHECKING:
@@ -26,12 +25,16 @@ DEFAULT_SERVING_NOTEBOOK = (
 
 
 def make_base_parameters(
-    config: "EzDeployConfig", hf_secret_scope: str, hf_secret_key: str,
-    min_replica: int, max_replica: int, gpu_node=Dict
+    config: "EzDeployConfig",
+    hf_secret_scope: str,
+    hf_secret_key: str,
+    min_replica: int,
+    max_replica: int,
+    gpu_node=Dict,
 ):
-    '''
+    """
     Function to Format the Parameter Arguements given to worflow to string
-    '''
+    """
     return {
         "ez_deploy_config": config.serialize_json(),
         "hf_secret_scope": hf_secret_scope or "",
@@ -45,17 +48,11 @@ def make_base_parameters(
 
 def update_cloud_specific_driver_node(cloud: Cloud):
     if cloud == Cloud.GCP:
-        return {
-            "driver_node_type_id": "n2-highmem-4"
-        }
+        return {"driver_node_type_id": "n2-highmem-4"}
     if cloud == Cloud.AWS:
-        return {
-            "driver_node_type_id": "i3.xlarge"
-        }
+        return {"driver_node_type_id": "i3.xlarge"}
     if cloud == Cloud.AZURE:
-        return {
-            "driver_node_type_id": "Standard_DS3_v2"
-        }
+        return {"driver_node_type_id": "Standard_DS3_v2"}
     raise ValueError(f"Cloud {cloud} is not supported")
 
 
@@ -73,7 +70,7 @@ def make_create_json(
     runtime: str = DEFAULT_RUNTIME,
     notebook_path: str = DEFAULT_SERVING_NOTEBOOK,
     specific_git_ref: str = None,
-    git_url: str = 'https://github.com/stikkireddy/mlflow-extensions.git'
+    git_url: str = "https://github.com/stikkireddy/mlflow-extensions.git",
 ):
     vm = JobsConfig(minimum_memory_in_gb=minimum_memory_in_gb).smallest_gpu(
         cloud_provider
@@ -100,14 +97,14 @@ def make_create_json(
             "driver_node_type_id": vm.name,
             "enable_elastic_disk": True,
             "data_security_mode": "NONE",
-            "runtime_engine": "STANDARD"
+            "runtime_engine": "STANDARD",
         }
         if min_replica == max_replica:
-            gpu_node['num_workers'] = min_replica
+            gpu_node["num_workers"] = min_replica
         else:
             gpu_node["autoscale"] = {
                 "min_workers": min_replica,
-                "max_workers": max_replica
+                "max_workers": max_replica,
             }
         gpu_node.update(update_cloud_specific_driver_node(cloud_provider))
     gpu_node.update(make_cloud_specific_attrs(cloud_provider))
@@ -155,7 +152,6 @@ def make_create_json(
                             min_replica,
                             max_replica,
                             gpu_node,
-
                         ),
                     },
                     "job_cluster_key": "deployment_gpu",
@@ -180,9 +176,7 @@ class EzDeployRayServeManager(EzDeployLiteManager):
         databricks_token: str = None,
         prefix: str = EZ_DEPLOY_LITE_PREFIX,
     ):
-        super().__init__(databricks_host,
-                         databricks_token,
-                         prefix)
+        super().__init__(databricks_host, databricks_token, prefix)
 
     def upsert(
         self,
@@ -210,7 +204,8 @@ class EzDeployRayServeManager(EzDeployLiteManager):
             huggingface_secret_scope=hf_secret_scope,
             huggingface_secret_key=hf_secret_key,
             specific_git_ref=entrypoint_git_ref,
-            git_url = entrypoint_git_url)
+            git_url=entrypoint_git_url,
+        )
         if self.exists(model_deployment_name):
             job_id = self.get_jobs(job_name)[0].job_id
             reset_data = {"new_settings": JobSettings(**create_json)}
