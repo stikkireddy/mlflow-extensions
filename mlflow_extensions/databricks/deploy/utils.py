@@ -1,5 +1,6 @@
 import socket
 import threading
+import typing
 from typing import List
 
 from mlflow_extensions.databricks.deploy.ez_deploy import EzDeployConfig
