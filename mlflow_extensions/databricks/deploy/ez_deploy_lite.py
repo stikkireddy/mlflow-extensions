@@ -47,8 +47,8 @@ class JobsConfig:
 def make_base_parameters(
     config: "EzDeployConfig", hf_secret_scope: str, hf_secret_key: str
 ):
-    if not config.pip_config_override:
-        pip_reqs = config.pip_config_override
+    if isinstance(config.pip_config_override, list) and len(config.pip_config_override) > 0:
+        pip_reqs = " ".join(config.pip_config_override)
     else:
         pip_reqs = " ".join(config.engine_config.default_pip_reqs())
 
