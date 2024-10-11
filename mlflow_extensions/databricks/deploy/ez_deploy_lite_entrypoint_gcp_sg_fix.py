@@ -101,7 +101,12 @@ engine_process.start_proc(ctx, health_check_thread=False)
 
 # COMMAND ----------
 
-url = f'https://{spark.conf.get("spark.databricks.workspaceUrl")}'
+try:
+  url = spark.conf.get("spark.databricks.workspaceUrl")
+except:
+  url = dbutils.notebook.entry_point.getDbutils().notebook().getContext().browserHostName().get()
+
+# url = f'https://{spark.conf.get("spark.databricks.workspaceUrl")}'
 url = url.rstrip("/")
 cluster_id = spark.conf.get("spark.databricks.clusterUsageTags.clusterId")
 print(
