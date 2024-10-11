@@ -314,6 +314,7 @@ class EzDeployLite:
         hf_secret_scope: str = None,
         hf_secret_key: str = None,
         specific_git_ref: str = None,
+        git_url: str = "https://github.com/stikkireddy/mlflow-extensions.git"
     ):
         self._edlm.upsert(
             deployment_name,
@@ -322,6 +323,7 @@ class EzDeployLite:
             hf_secret_key=hf_secret_key,
             hf_secret_scope=hf_secret_scope,
             entrypoint_git_ref=specific_git_ref,
+            git_url=url
         )
         self._edlm.start_server(deployment_name)
 

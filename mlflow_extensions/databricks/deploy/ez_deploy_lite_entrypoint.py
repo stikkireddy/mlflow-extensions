@@ -43,6 +43,19 @@ if hf_secret_scope and hf_secret_key:
 
 # COMMAND ----------
 
+import socket
+if os.getenv("HOST_IP", ""):
+    print(f'HOST_IP is assigned: {os.getenv("HOST_IP")}')
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    s.connect(("8.8.8.8", 80))  
+    vllm_ip = s.getsockname()[0]
+    os.environ['VLLM_HOST_IP'] = vllm_ip
+
+from vllm.utils import get_ip
+print(f'vLLM IP: {get_ip()}')
+
+# COMMAND ----------
+
 from mlflow_extensions.databricks.deploy.ez_deploy import EzDeployConfig
 
 config = EzDeployConfig.from_json(ez_deploy_config)
