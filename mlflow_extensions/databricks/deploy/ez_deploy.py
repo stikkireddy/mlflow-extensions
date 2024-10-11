@@ -328,7 +328,7 @@ class EzDeployLite:
             hf_secret_key=hf_secret_key,
             hf_secret_scope=hf_secret_scope,
             entrypoint_git_ref=specific_git_ref,
-            git_url=git_url
+            git_url=git_url，
             notebook_path=notebook_path
         )
         self._edlm.start_server(deployment_name)
