@@ -35,7 +35,7 @@ assert pip_reqs, "pip_reqs is required"
 
 import os
 
-os.environ["HF_HUB_ENABLE_HF_TRANSFER"] = "1"
+# os.environ["HF_HUB_ENABLE_HF_TRANSFER"] = "1"
 if hf_secret_scope and hf_secret_key:
     os.environ["HF_TOKEN"] = dbutils.secrets.get(
         scope=hf_secret_scope, key=hf_secret_key
