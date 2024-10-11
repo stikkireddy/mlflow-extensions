@@ -101,10 +101,16 @@ engine_process.start_proc(ctx, health_check_thread=False)
 
 # COMMAND ----------
 
-from dbruntime.databricks_repl_context import get_context
-ctx = get_context()
+from databricks.sdk import WorkspaceClient
+w = WorkspaceClient()
 
-url = f'https://{ctx.browserHostName}'
+if 'gcp' in w.config.host:
+  host = f"{w.get_workspace_id()}.{w.get_workspace_id() % 10}.gcp.databricks.com"
+
+else:
+  host = spark.conf.get("spark.databricks.workspaceUrl")
+
+url = f'https://{host}'
 url = url.rstrip("/")
 cluster_id = spark.conf.get("spark.databricks.clusterUsageTags.clusterId")
 print(
