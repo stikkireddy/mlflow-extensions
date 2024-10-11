@@ -256,7 +256,7 @@ class EzDeployLiteManager:
             ez_deploy_config=ez_deploy_config,
             huggingface_secret_scope=hf_secret_scope,
             huggingface_secret_key=hf_secret_key,
-            notebook_path=notebook_path
+            notebook_path=notebook_path,
             specific_git_ref=entrypoint_git_ref,
             git_url=git_url,
         )
