@@ -47,11 +47,16 @@ class JobsConfig:
 def make_base_parameters(
     config: "EzDeployConfig", hf_secret_scope: str, hf_secret_key: str
 ):
+    if not config.pip_config_override:
+        pip_reqs = config.pip_config_override
+    else:
+        pip_reqs = " ".join(config.engine_config.default_pip_reqs())
+
     return {
         "ez_deploy_config": config.serialize_json(),
         "hf_secret_scope": hf_secret_scope or "",
         "hf_secret_key": hf_secret_key or "",
-        "pip_reqs": " ".join(config.engine_config.default_pip_reqs()),
+        "pip_reqs": pip_reqs,
     }
 
 
