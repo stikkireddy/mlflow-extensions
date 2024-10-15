@@ -67,6 +67,7 @@ def make_cloud_specific_attrs(cloud: Cloud):
                 "use_preemptible_executors": False,
                 "availability": "ON_DEMAND_GCP",
                 "zone_id": "HA",
+                "boot_disk_size": 200
             }
         }
     if cloud == Cloud.AWS:

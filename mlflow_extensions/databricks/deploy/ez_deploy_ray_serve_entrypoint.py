@@ -296,32 +296,32 @@ print(
 
 # COMMAND ----------
 
-from openai import OpenAI
+# from openai import OpenAI
 
-# Note: Ray Serve doesn't support all OpenAI client arguments and may ignore some.
-client = OpenAI(
-    # Replace the URL if deploying your app remotely
-    # (e.g., on Anyscale or KubeRay).
-    base_url="http://localhost:9989/v1",
-    api_key="NOT A REAL KEY",
-)
-chat_completion = client.chat.completions.create(
-    model="default",
-    messages=[
-        {"role": "system", "content": "You are a helpful assistant."},
-        {
-            "role": "user",
-            "content": "What are some highly rated restaurants in San Francisco?'",
-        },
-    ],
-    temperature=0.01,
-    stream=True,
-    max_tokens=100,
-)
+# # Note: Ray Serve doesn't support all OpenAI client arguments and may ignore some.
+# client = OpenAI(
+#     # Replace the URL if deploying your app remotely
+#     # (e.g., on Anyscale or KubeRay).
+#     base_url="http://localhost:9989/v1",
+#     api_key="NOT A REAL KEY",
+# )
+# chat_completion = client.chat.completions.create(
+#     model="default",
+#     messages=[
+#         {"role": "system", "content": "You are a helpful assistant."},
+#         {
+#             "role": "user",
+#             "content": "What are some highly rated restaurants in San Francisco?'",
+#         },
+#     ],
+#     temperature=0.01,
+#     stream=True,
+#     max_tokens=100,
+# )
 
-for chat in chat_completion:
-    if chat.choices[0].delta.content is not None:
-        print(chat.choices[0].delta.content, end="")
+# for chat in chat_completion:
+#     if chat.choices[0].delta.content is not None:
+#         print(chat.choices[0].delta.content, end="")
 
 # COMMAND ----------
 
