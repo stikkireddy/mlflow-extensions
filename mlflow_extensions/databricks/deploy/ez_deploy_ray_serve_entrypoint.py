@@ -53,12 +53,25 @@ gpu_config = json.loads(gpu_config)
 
 import os
 
-os.environ["HF_HUB_ENABLE_HF_TRANSFER"] = "1"
+# os.environ["HF_HUB_ENABLE_HF_TRANSFER"] = "1"
 if hf_secret_scope and hf_secret_key:
     os.environ["HF_TOKEN"] = dbutils.secrets.get(
         scope=hf_secret_scope, key=hf_secret_key
     )
 os.environ["HF_HOME"] = "/local_disk0/hf_home"
+
+# COMMAND ----------
+
+import socket
+if os.getenv("HOST_IP", ""):
+    print(f'HOST_IP is assigned: {os.getenv("HOST_IP")}')
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    s.connect(("8.8.8.8", 80))  
+    vllm_ip = s.getsockname()[0]
+    os.environ['VLLM_HOST_IP'] = vllm_ip
+
+from vllm.utils import get_ip
+print(f'vLLM IP: {get_ip()}')
 
 # COMMAND ----------
 
@@ -265,7 +278,16 @@ serve.run(deploy)
 
 # COMMAND ----------
 
-url = f'https://{spark.conf.get("spark.databricks.workspaceUrl")}'
+from databricks.sdk import WorkspaceClient
+w = WorkspaceClient()
+
+if 'gcp' in w.config.host:
+  host = f"{w.get_workspace_id()}.{w.get_workspace_id() % 10}.gcp.databricks.com"
+
+else:
+  host = spark.conf.get("spark.databricks.workspaceUrl")
+
+url = f'https://{host}'
 url = url.rstrip("/")
 cluster_id = spark.conf.get("spark.databricks.clusterUsageTags.clusterId")
 print(
