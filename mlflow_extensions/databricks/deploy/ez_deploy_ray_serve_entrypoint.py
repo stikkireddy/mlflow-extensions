@@ -175,9 +175,9 @@ app = FastAPI()
     autoscaling_config={
         "min_replicas": min_replica,
         "max_replicas": max_replica,
-        "target_ongoing_requests": 10,
+        "target_ongoing_requests": 5#10,
     },
-    max_ongoing_requests=20,
+    max_ongoing_requests=10#20,
     ray_actor_options={"num_cpus": 4},
     logging_config={
         "encoding": "JSON",
