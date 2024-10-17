@@ -27,6 +27,10 @@ from mlflow_extensions.serving.wrapper import (
     CustomServingEnginePyfuncWrapper,
 )
 
+DEFAULT_SERVING_NOTEBOOK = (
+    "mlflow_extensions/databricks/deploy/ez_deploy_lite_entrypoint"
+)
+
 
 @dataclass(kw_only=True, frozen=True)
 class ServingConfig:
@@ -314,6 +318,8 @@ class EzDeployLite:
         hf_secret_scope: str = None,
         hf_secret_key: str = None,
         specific_git_ref: str = None,
+        git_url: str = "https://github.com/stikkireddy/mlflow-extensions.git",
+        notebook_path: str = DEFAULT_SERVING_NOTEBOOK
     ):
         self._edlm.upsert(
             deployment_name,
@@ -322,6 +328,8 @@ class EzDeployLite:
             hf_secret_key=hf_secret_key,
             hf_secret_scope=hf_secret_scope,
             entrypoint_git_ref=specific_git_ref,
+            git_url=git_url,
+            notebook_path=notebook_path
         )
         self._edlm.start_server(deployment_name)
 

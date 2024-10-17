@@ -35,6 +35,11 @@ def make_base_parameters(
     """
     Function to Format the Parameter Arguements given to worflow to string
     """
+    if isinstance(config.pip_config_override, list) and len(config.pip_config_override) > 0:
+        pip_reqs = " ".join(config.pip_config_override)
+    else:
+        pip_reqs = " ".join(config.engine_config.default_pip_reqs())
+
     return {
         "ez_deploy_config": config.serialize_json(),
         "hf_secret_scope": hf_secret_scope or "",
@@ -42,7 +47,7 @@ def make_base_parameters(
         "min_replica": min_replica,
         "max_replica": max_replica,
         "gpu_config": json.dumps(gpu_node),
-        "pip_reqs": " ".join(config.engine_config.default_pip_reqs()),
+        "pip_reqs": pip_reqs,
     }
 
 
