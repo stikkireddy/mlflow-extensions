@@ -10,28 +10,20 @@ from mlflow.types.llm import ChatCompletionResponse as MLFlowChatCompletionRespo
 from mlflow.pyfunc import PythonModel
 from mlflow.models import set_model
 
+from vllm.entrypoints.openai.protocol import (
+    ChatCompletionRequest
+)
+
 from mlflow_extensions.log import LogConfig, Logger, get_logger, initialize_logging
 from mlflow_extensions.serving.compute_details import get_compute_details
 from mlflow_extensions.serving.engines.base import EngineConfig, EngineProcess
 from mlflow_extensions.serving.engines import VLLMEngineProcess, VLLMEngineConfig
 from mlflow_extensions.serving.wrapper import CustomServingEnginePyfuncWrapper
-from mlflow_extensions.serving.serde_v2 import (
-    MlflowPyfuncHttpxSerializer,
-    make_error_response,
-)
-
-from vllm.entrypoints.openai.protocol import (
-    ChatCompletionRequest
-)
-
-_ENGINE = VLLMEngineProcess
-_ENGINE_CONFIG = VLLMEngineConfig
-
 
 class CustomServingEngineChatModel(CustomServingEnginePyfuncWrapper):
 
     # todo support lora modules
-    def __init__(self, *, engine: Type[EngineProcess] = _ENGINE,
+    def __init__(self, *, engine: Type[EngineProcess] = VLLMEngineProcess,
                  engine_config: EngineConfig = {}):
         self._engine_klass: Type[EngineProcess] = engine
         self._engine_config: EngineConfig = {}
@@ -50,7 +42,7 @@ class CustomServingEngineChatModel(CustomServingEnginePyfuncWrapper):
         assert self._engine_config != {}, "Engine config must be present"
         if self._engine is None:
             self._engine = self._engine_klass(
-                config=_ENGINE_CONFIG(**self._engine_config))
+                config=VLLMEngineConfig(**self._engine_config))
 
         self._engine.start_proc(context)
 

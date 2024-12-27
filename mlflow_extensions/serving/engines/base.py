@@ -155,7 +155,7 @@ class EngineConfig(abc.ABC):
         filelock_version: str = "3.15.4",
         httpx_version: str = "0.27.0",
         psutil_version: str = "6.0.0",
-        mlflow_version: str = "2.16.0",
+        mlflow_version: str = "2.19.0",
         mlflow_extensions_version: str = None,
         **kwargs,
     ) -> List[str]:
