@@ -417,7 +417,7 @@ class EzDeployVllmOpenCompat(EzDeploy):
             self._registered_model_name is not None
         ), "Ensure you provide a valid registered_name"
 
-        assert isinstance(self._config.engine_proc ,VLLMEngineProcess), "Only Vllm Module supported as of now"
+        assert self._config.engine_proc.__name__  == "VLLMEngineProcess", "Only Vllm Module supported as of now"
 
         model_config = {
             "engine_config": asdict(self._config.engine_config),
@@ -426,6 +426,7 @@ class EzDeployVllmOpenCompat(EzDeploy):
         mlflow.set_registry_uri("databricks-uc")
 
         code_path = model_file.__file__
+        print(code_path)
         with mlflow.start_run():
             logged_model = mlflow.pyfunc.log_model(
                                 artifact_path="model",
