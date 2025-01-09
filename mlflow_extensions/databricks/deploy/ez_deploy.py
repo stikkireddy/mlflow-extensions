@@ -490,6 +490,7 @@ CHAT_MODEL_INPUT = Schema(
             ),
             required=False,
         ),
+        ColSpec(name="tool_choice", type=AnyType(), required=True),
         ColSpec(name="custom_inputs", type=Map(AnyType()), required=False),
     ]
 )
