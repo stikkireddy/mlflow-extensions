@@ -76,7 +76,11 @@ class CustomServingEngineChatModel(CustomServingEnginePyfuncWrapper):
         if "top_logprobs" not in params:
             request.pop('logprobs', None)
             request.pop('top_logprobs', None)
-
+        
+        for message in request['messages']:
+            if "tool_calls" in message:
+                if not isinstance(message['tool_calls'], (list, dict, str)):
+                    message['tool_calls'] = list(message['tool_calls'])
         response = self._request_model(request)
 
         return response
