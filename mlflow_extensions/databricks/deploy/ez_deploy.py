@@ -8,6 +8,12 @@ from databricks.sdk import WorkspaceClient
 from databricks.sdk.errors import NotFound, ResourceDoesNotExist
 from databricks.sdk.service.serving import EndpointCoreConfigInput, ServedEntityInput
 
+import mlflow
+from mlflow.types.llm import CHAT_MODEL_OUTPUT_SCHEMA
+from mlflow.types.schema import AnyType, Array, ColSpec, DataType, Map, Object, Property, Schema
+from mlflow.models import ModelSignature
+
+
 from mlflow_extensions.databricks.deploy.ez_deploy_lite import EzDeployLiteManager
 from mlflow_extensions.databricks.deploy.ez_deploy_ray_serve import (
     EzDeployRayServeManager,
@@ -26,6 +32,9 @@ from mlflow_extensions.serving.wrapper import (
     LOG_FILE_KEY,
     CustomServingEnginePyfuncWrapper,
 )
+from mlflow_extensions.serving.engines import VLLMEngineProcess
+import mlflow_extensions.serving.model as model_file
+
 
 
 @dataclass(kw_only=True, frozen=True)
@@ -376,3 +385,130 @@ class EzDeployRayServe:
             entrypoint_git_url=git_url,
         )
         self._edlm.start_server(deployment_name)
+
+      
+class EzDeployVllmOpenCompat(EzDeploy):
+    def __init__(
+        self,
+        *,
+        config: EzDeployConfig,
+        registered_model_name: str,
+        databricks_host: str = None,
+        databricks_token: str = None,
+    ):
+        super().__init__(config = config, 
+                         registered_model_name = registered_model_name, 
+                         databricks_host = databricks_host, 
+                         databricks_token =databricks_token)
+
+
+    
+    def download(self, *,local_path =None, local_dir=None):
+
+        if local_path is not None:
+           self.artifacts = {"model" : local_path}
+        else:
+            self.artifacts = self._config.download_artifacts()           
+        self._downloaded = True
+
+    def register(self):
+        assert self._downloaded is True, "Ensure you run the download method first"
+        assert (
+            self._registered_model_name is not None
+        ), "Ensure you provide a valid registered_name"
+
+        assert self._config.engine_proc.__name__  == "VLLMEngineProcess", "Only Vllm Module supported as of now"
+
+        model_config = {
+            "engine_config": asdict(self._config.engine_config),
+            "engine_proc": self._config.engine_proc.__name__}
+
+        mlflow.set_registry_uri("databricks-uc")
+
+        code_path = model_file.__file__
+        print(code_path)
+        with mlflow.start_run():
+            logged_model = mlflow.pyfunc.log_model(
+                                artifact_path="model",
+                                python_model=code_path,
+                                artifacts = self.artifacts,
+                                model_config=model_config,
+                                pip_requirements = self._config.pip_config_override,
+                                input_example=example,
+                                signature=ModelSignature(CHAT_MODEL_INPUT,
+                                                        CHAT_MODEL_OUTPUT_SCHEMA),
+                                registered_model_name=self._registered_model_name)
+            mlflow.log_params(
+                {
+                    "model": self._config.engine_config.model,
+                    "host": self._config.engine_config.host,
+                    "port": self._config.engine_config.port,
+                    "command": str(self._config.engine_config.to_run_command()),
+                    "serialized_engine_config": str(
+                        json.dumps(asdict(self._config.engine_config))
+                    ),
+                }
+            )
+            self._latest_registered_model_version = (
+                logged_model.registered_model_version
+            )
+
+CHAT_MODEL_INPUT = Schema(
+    [
+        ColSpec(name="messages", type=AnyType(), required=True),
+        ColSpec(name="temperature", type=DataType.double, required=False),
+        ColSpec(name="max_tokens", type=DataType.long, required=False),
+        ColSpec(name="stop", type=Array(DataType.string), required=False),
+        ColSpec(name="n", type=DataType.long, required=False),
+        ColSpec(name="stream", type=DataType.boolean, required=False),
+        ColSpec(name="top_p", type=DataType.double, required=False),
+        ColSpec(name="top_k", type=DataType.long, required=False),
+        ColSpec(name="frequency_penalty", type=DataType.double, required=False),
+        ColSpec(name="presence_penalty", type=DataType.double, required=False),
+        ColSpec(
+            name="tools",
+            type=Array(
+                Object([
+                    Property("type", DataType.string),
+                    Property("function", Object([
+                        Property("name", DataType.string),
+                        Property("description", DataType.string, False),
+                        Property("parameters", Object([
+                            Property("properties", Map(Object([
+                                Property("type", DataType.string),
+                                Property("description", DataType.string, False),
+                                Property("enum", Array(DataType.string), False),
+                                Property("items", Object([Property("type", DataType.string)]), False), # noqa
+                            ]))),
+                            Property("type", DataType.string, False),
+                            Property("required", Array(DataType.string), False),
+                            Property("additionalProperties", DataType.boolean, False),
+                        ])),
+                        Property("strict", DataType.boolean, False),
+                    ]), False),
+                ]),
+            ),
+            required=False,
+        ),
+        ColSpec(name="tool_choice", type=AnyType(), required=False),
+        ColSpec(name="custom_inputs", type=Map(AnyType()), required=False),
+    ]
+)
+
+example = {
+  "messages": [
+            {
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": "this is a test"}
+                ],
+            }
+        ],
+  "temperature": 0.1,
+  "max_tokens": 10,
+  "stop": [
+    "\n"
+  ],
+  "n": 1,
+  "stream": False
+}
