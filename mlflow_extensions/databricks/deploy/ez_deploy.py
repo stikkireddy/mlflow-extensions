@@ -4,16 +4,24 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import List, Literal, Optional, Type
 
+import mlflow
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.errors import NotFound, ResourceDoesNotExist
 from databricks.sdk.service.serving import EndpointCoreConfigInput, ServedEntityInput
-
-import mlflow
-from mlflow.types.llm import CHAT_MODEL_OUTPUT_SCHEMA
-from mlflow.types.schema import AnyType, Array, ColSpec, DataType, Map, Object, Property, Schema
 from mlflow.models import ModelSignature
+from mlflow.types.llm import CHAT_MODEL_OUTPUT_SCHEMA
+from mlflow.types.schema import (
+    AnyType,
+    Array,
+    ColSpec,
+    DataType,
+    Map,
+    Object,
+    Property,
+    Schema,
+)
 
-
+import mlflow_extensions.serving.model as model_file
 from mlflow_extensions.databricks.deploy.ez_deploy_lite import EzDeployLiteManager
 from mlflow_extensions.databricks.deploy.ez_deploy_ray_serve import (
     EzDeployRayServeManager,
@@ -24,6 +32,7 @@ from mlflow_extensions.databricks.deploy.gpu_configs import (
     GPUConfig,
 )
 from mlflow_extensions.log import LogConfig
+from mlflow_extensions.serving.engines import VLLMEngineProcess
 from mlflow_extensions.serving.engines.base import EngineConfig, EngineProcess
 from mlflow_extensions.serving.engines.vllm_engine import VLLMEngineConfig
 from mlflow_extensions.serving.wrapper import (
@@ -32,9 +41,6 @@ from mlflow_extensions.serving.wrapper import (
     LOG_FILE_KEY,
     CustomServingEnginePyfuncWrapper,
 )
-from mlflow_extensions.serving.engines import VLLMEngineProcess
-import mlflow_extensions.serving.model as model_file
-
 
 
 @dataclass(kw_only=True, frozen=True)
@@ -386,7 +392,7 @@ class EzDeployRayServe:
         )
         self._edlm.start_server(deployment_name)
 
-      
+
 class EzDeployVllmOpenCompat(EzDeploy):
     def __init__(
         self,
@@ -396,19 +402,19 @@ class EzDeployVllmOpenCompat(EzDeploy):
         databricks_host: str = None,
         databricks_token: str = None,
     ):
-        super().__init__(config = config, 
-                         registered_model_name = registered_model_name, 
-                         databricks_host = databricks_host, 
-                         databricks_token =databricks_token)
+        super().__init__(
+            config=config,
+            registered_model_name=registered_model_name,
+            databricks_host=databricks_host,
+            databricks_token=databricks_token,
+        )
 
-
-    
-    def download(self, *,local_path =None, local_dir=None):
+    def download(self, *, local_path=None, local_dir=None):
 
         if local_path is not None:
-           self.artifacts = {"model" : local_path}
+            self.artifacts = {"model": local_path}
         else:
-            self.artifacts = self._config.download_artifacts()           
+            self.artifacts = self._config.download_artifacts()
         self._downloaded = True
 
     def register(self):
@@ -417,11 +423,14 @@ class EzDeployVllmOpenCompat(EzDeploy):
             self._registered_model_name is not None
         ), "Ensure you provide a valid registered_name"
 
-        assert self._config.engine_proc.__name__  == "VLLMEngineProcess", "Only Vllm Module supported as of now"
+        assert (
+            self._config.engine_proc.__name__ == "VLLMEngineProcess"
+        ), "Only Vllm Module supported as of now"
 
         model_config = {
             "engine_config": asdict(self._config.engine_config),
-            "engine_proc": self._config.engine_proc.__name__}
+            "engine_proc": self._config.engine_proc.__name__,
+        }
 
         mlflow.set_registry_uri("databricks-uc")
 
@@ -429,15 +438,15 @@ class EzDeployVllmOpenCompat(EzDeploy):
         print(code_path)
         with mlflow.start_run():
             logged_model = mlflow.pyfunc.log_model(
-                                artifact_path="model",
-                                python_model=code_path,
-                                artifacts = self.artifacts,
-                                model_config=model_config,
-                                pip_requirements = self._config.pip_config_override,
-                                input_example=example,
-                                signature=ModelSignature(CHAT_MODEL_INPUT,
-                                                        CHAT_MODEL_OUTPUT_SCHEMA),
-                                registered_model_name=self._registered_model_name)
+                artifact_path="model",
+                python_model=code_path,
+                artifacts=self.artifacts,
+                model_config=model_config,
+                pip_requirements=self._config.pip_config_override,
+                input_example=example,
+                signature=ModelSignature(CHAT_MODEL_INPUT, CHAT_MODEL_OUTPUT_SCHEMA),
+                registered_model_name=self._registered_model_name,
+            )
             mlflow.log_params(
                 {
                     "model": self._config.engine_config.model,
@@ -452,6 +461,7 @@ class EzDeployVllmOpenCompat(EzDeploy):
             self._latest_registered_model_version = (
                 logged_model.registered_model_version
             )
+
 
 CHAT_MODEL_INPUT = Schema(
     [
@@ -468,25 +478,79 @@ CHAT_MODEL_INPUT = Schema(
         ColSpec(
             name="tools",
             type=Array(
-                Object([
-                    Property("type", DataType.string),
-                    Property("function", Object([
-                        Property("name", DataType.string),
-                        Property("description", DataType.string, False),
-                        Property("parameters", Object([
-                            Property("properties", Map(Object([
-                                Property("type", DataType.string),
-                                Property("description", DataType.string, False),
-                                Property("enum", Array(DataType.string), False),
-                                Property("items", Object([Property("type", DataType.string)]), False), # noqa
-                            ]))),
-                            Property("type", DataType.string, False),
-                            Property("required", Array(DataType.string), False),
-                            Property("additionalProperties", DataType.boolean, False),
-                        ])),
-                        Property("strict", DataType.boolean, False),
-                    ]), False),
-                ]),
+                Object(
+                    [
+                        Property("type", DataType.string),
+                        Property(
+                            "function",
+                            Object(
+                                [
+                                    Property("name", DataType.string),
+                                    Property("description", DataType.string, False),
+                                    Property(
+                                        "parameters",
+                                        Object(
+                                            [
+                                                Property(
+                                                    "properties",
+                                                    Map(
+                                                        Object(
+                                                            [
+                                                                Property(
+                                                                    "type",
+                                                                    DataType.string,
+                                                                ),
+                                                                Property(
+                                                                    "description",
+                                                                    DataType.string,
+                                                                    False,
+                                                                ),
+                                                                Property(
+                                                                    "enum",
+                                                                    Array(
+                                                                        DataType.string
+                                                                    ),
+                                                                    False,
+                                                                ),
+                                                                Property(
+                                                                    "items",
+                                                                    Object(
+                                                                        [
+                                                                            Property(
+                                                                                "type",
+                                                                                DataType.string,
+                                                                            )
+                                                                        ]
+                                                                    ),
+                                                                    False,
+                                                                ),  # noqa
+                                                            ]
+                                                        )
+                                                    ),
+                                                ),
+                                                Property(
+                                                    "type", DataType.string, False
+                                                ),
+                                                Property(
+                                                    "required",
+                                                    Array(DataType.string),
+                                                    False,
+                                                ),
+                                                Property(
+                                                    "additionalProperties",
+                                                    DataType.boolean,
+                                                    False,
+                                                ),
+                                            ]
+                                        ),
+                                    ),
+                                    Property("strict", DataType.boolean, False),
+                                ]
+                            ),
+                            False,
+                        ),
+                    ]
+                ),
             ),
             required=False,
         ),
@@ -496,19 +560,15 @@ CHAT_MODEL_INPUT = Schema(
 )
 
 example = {
-  "messages": [
-            {
-                "role": "user",
-                "content": [
-                    {"type": "text", "text": "this is a test"}
-                ],
-            }
-        ],
-  "temperature": 0.1,
-  "max_tokens": 10,
-  "stop": [
-    "\n"
-  ],
-  "n": 1,
-  "stream": False
+    "messages": [
+        {
+            "role": "user",
+            "content": [{"type": "text", "text": "this is a test"}],
+        }
+    ],
+    "temperature": 0.1,
+    "max_tokens": 10,
+    "stop": ["\n"],
+    "n": 1,
+    "stream": False,
 }
