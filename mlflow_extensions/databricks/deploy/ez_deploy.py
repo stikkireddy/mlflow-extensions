@@ -7,7 +7,7 @@ from typing import List, Literal, Optional, Type
 import mlflow
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.errors import NotFound, ResourceDoesNotExist
-from databricks.sdk.service.serving import EndpointCoreConfigInput, ServedEntityInput
+from databricks.sdk.service.serving import EndpointCoreConfigInput, ServedEntityInput,ServingModelWorkloadType
 from mlflow.models import ModelSignature
 from mlflow.types.llm import CHAT_MODEL_OUTPUT_SCHEMA, EMBEDDING_MODEL_OUTPUT_SCHEMA
 
@@ -269,7 +269,7 @@ class EzDeploy:
                             entity_name=self._registered_model_name,
                             entity_version=self._latest_registered_model_version,
                             scale_to_zero_enabled=scale_to_zero,
-                            workload_type=workload_type or gpu_cfg.name,
+                            workload_type=ServingModelWorkloadType(workload_type or gpu_cfg.name),
                             workload_size=workload_size,
                             environment_vars=environment_vars,
                         )
@@ -285,7 +285,7 @@ class EzDeploy:
                         entity_name=self._registered_model_name,
                         entity_version=self._latest_registered_model_version,
                         scale_to_zero_enabled=scale_to_zero,
-                        workload_type=workload_type or gpu_cfg.name,
+                        workload_type=ServingModelWorkloadType(workload_type or gpu_cfg.name),
                         workload_size=workload_size,
                         environment_vars=environment_vars,
                     )
