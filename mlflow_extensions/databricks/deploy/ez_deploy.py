@@ -9,19 +9,14 @@ from databricks.sdk import WorkspaceClient
 from databricks.sdk.errors import NotFound, ResourceDoesNotExist
 from databricks.sdk.service.serving import EndpointCoreConfigInput, ServedEntityInput
 from mlflow.models import ModelSignature
-from mlflow.types.llm import CHAT_MODEL_OUTPUT_SCHEMA
-from mlflow.types.schema import (
-    AnyType,
-    Array,
-    ColSpec,
-    DataType,
-    Map,
-    Object,
-    Property,
-    Schema,
-)
+from mlflow.types.llm import CHAT_MODEL_OUTPUT_SCHEMA, EMBEDDING_MODEL_OUTPUT_SCHEMA
 
-import mlflow_extensions.serving.model as model_file
+from mlflow_extensions.databricks.deploy.custom_mlflow_schemas import (
+    CHAT_MODEL_EXAMPLE,
+    CHAT_MODEL_INPUT,
+    EMBEDDING_MODEL_EXAMPLE,
+    EMBEDDING_MODEL_INPUT_SCHEMA,
+)
 from mlflow_extensions.databricks.deploy.ez_deploy_lite import EzDeployLiteManager
 from mlflow_extensions.databricks.deploy.ez_deploy_ray_serve import (
     EzDeployRayServeManager,
@@ -32,9 +27,9 @@ from mlflow_extensions.databricks.deploy.gpu_configs import (
     GPUConfig,
 )
 from mlflow_extensions.log import LogConfig
-from mlflow_extensions.serving.engines import VLLMEngineProcess
 from mlflow_extensions.serving.engines.base import EngineConfig, EngineProcess
 from mlflow_extensions.serving.engines.vllm_engine import VLLMEngineConfig
+from mlflow_extensions.serving.model_templates import chat_model, embedding_model
 from mlflow_extensions.serving.wrapper import (
     ARCHIVE_LOG_PATH_KEY,
     ENABLE_DIAGNOSTICS_FLAG,
@@ -427,6 +422,13 @@ class EzDeployVllmOpenCompat(EzDeploy):
             self._config.engine_proc.__name__ == "VLLMEngineProcess"
         ), "Only Vllm Module supported as of now"
 
+        engine_config: VLLMEngineConfig = self._config.engine_config
+
+        vllm_task_type = "generate"
+        if "--task" in engine_config.vllm_command_flags:
+            if engine_config.vllm_command_flags["--task"] == "embedding":
+                vllm_task_type = "embedding"
+
         model_config = {
             "engine_config": asdict(self._config.engine_config),
             "engine_proc": self._config.engine_proc.__name__,
@@ -434,8 +436,17 @@ class EzDeployVllmOpenCompat(EzDeploy):
 
         mlflow.set_registry_uri("databricks-uc")
 
-        code_path = model_file.__file__
+        if vllm_task_type == "embedding":
+            code_path = embedding_model.__file__
+            model_signature = ModelSignature(
+                EMBEDDING_MODEL_INPUT_SCHEMA, EMBEDDING_MODEL_OUTPUT_SCHEMA
+            )
+        else:
+            code_path = chat_model.__file__
+            model_signature = ModelSignature(CHAT_MODEL_INPUT, CHAT_MODEL_OUTPUT_SCHEMA)
+
         print(code_path)
+
         with mlflow.start_run():
             logged_model = mlflow.pyfunc.log_model(
                 artifact_path="model",
@@ -443,8 +454,12 @@ class EzDeployVllmOpenCompat(EzDeploy):
                 artifacts=self.artifacts,
                 model_config=model_config,
                 pip_requirements=self._config.pip_config_override,
-                input_example=example,
-                signature=ModelSignature(CHAT_MODEL_INPUT, CHAT_MODEL_OUTPUT_SCHEMA),
+                input_example=(
+                    CHAT_MODEL_EXAMPLE
+                    if vllm_task_type == "generate"
+                    else EMBEDDING_MODEL_EXAMPLE
+                ),
+                signature=model_signature,
                 registered_model_name=self._registered_model_name,
             )
             mlflow.log_params(
@@ -461,114 +476,3 @@ class EzDeployVllmOpenCompat(EzDeploy):
             self._latest_registered_model_version = (
                 logged_model.registered_model_version
             )
-
-
-CHAT_MODEL_INPUT = Schema(
-    [
-        ColSpec(name="messages", type=AnyType(), required=True),
-        ColSpec(name="temperature", type=DataType.double, required=False),
-        ColSpec(name="max_tokens", type=DataType.long, required=False),
-        ColSpec(name="stop", type=Array(DataType.string), required=False),
-        ColSpec(name="n", type=DataType.long, required=False),
-        ColSpec(name="stream", type=DataType.boolean, required=False),
-        ColSpec(name="top_p", type=DataType.double, required=False),
-        ColSpec(name="top_k", type=DataType.long, required=False),
-        ColSpec(name="frequency_penalty", type=DataType.double, required=False),
-        ColSpec(name="presence_penalty", type=DataType.double, required=False),
-        ColSpec(
-            name="tools",
-            type=Array(
-                Object(
-                    [
-                        Property("type", DataType.string),
-                        Property(
-                            "function",
-                            Object(
-                                [
-                                    Property("name", DataType.string),
-                                    Property("description", DataType.string, False),
-                                    Property(
-                                        "parameters",
-                                        Object(
-                                            [
-                                                Property(
-                                                    "properties",
-                                                    Map(
-                                                        Object(
-                                                            [
-                                                                Property(
-                                                                    "type",
-                                                                    DataType.string,
-                                                                ),
-                                                                Property(
-                                                                    "description",
-                                                                    DataType.string,
-                                                                    False,
-                                                                ),
-                                                                Property(
-                                                                    "enum",
-                                                                    Array(
-                                                                        DataType.string
-                                                                    ),
-                                                                    False,
-                                                                ),
-                                                                Property(
-                                                                    "items",
-                                                                    Object(
-                                                                        [
-                                                                            Property(
-                                                                                "type",
-                                                                                DataType.string,
-                                                                            )
-                                                                        ]
-                                                                    ),
-                                                                    False,
-                                                                ),  # noqa
-                                                            ]
-                                                        )
-                                                    ),
-                                                ),
-                                                Property(
-                                                    "type", DataType.string, False
-                                                ),
-                                                Property(
-                                                    "required",
-                                                    Array(DataType.string),
-                                                    False,
-                                                ),
-                                                Property(
-                                                    "additionalProperties",
-                                                    DataType.boolean,
-                                                    False,
-                                                ),
-                                            ]
-                                        ),
-                                    ),
-                                    Property("strict", DataType.boolean, False),
-                                ]
-                            ),
-                            False,
-                        ),
-                    ]
-                ),
-            ),
-            required=False,
-        ),
-        ColSpec(name="tool_choice", type=AnyType(), required=False),
-        ColSpec(name="custom_inputs", type=Map(AnyType()), required=False),
-    ]
-)
-
-example = {
-    "messages": [
-        {
-            "role": "user",
-            "content": [{"type": "text", "text": "this is a test"}],
-        }
-    ],
-    "temperature": 0.1,
-    "max_tokens": 10,
-    "stop": ["\n"],
-    "n": 1,
-    "stream": False,
-}
