@@ -1,4 +1,4 @@
-databricks-sdk
+databricks-sdk==0.56.0
 filelock
 httpx
 huggingface-hub
