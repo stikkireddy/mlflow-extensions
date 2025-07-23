@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+
+{% block content %}
+{% if page.nb_url %}
+<a class="md-content__button md-icon" href="{{ page.nb_url }}" title="Download Notebook">
+    {% include ".icons/material/download.svg" %}
+</a>
+{% endif %}
+
+{{ super() }}
+{% endblock content %}
