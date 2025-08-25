@@ -11,7 +11,14 @@ except ImportError as e:
     raise e
 
 
+def is_repo_local_dir(repo_id: str):
+    return Path(repo_id).is_dir()
+
+
 def snapshot_download_local(repo_id: str, local_dir: str, tokenizer_only: bool = False):
+    if is_repo_local_dir(repo_id):
+        # TODO: add a check to see if the path is a volume path and then copy the files to /local_disk0
+        return repo_id
     local_dir = local_dir.rstrip("/")
     model_local_path = f"{local_dir}/{repo_id}"
     kwargs = {}
