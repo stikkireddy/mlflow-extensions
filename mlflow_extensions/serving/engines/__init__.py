@@ -1,3 +1,7 @@
+from mlflow_extensions.serving.engines.infinity_engine import (
+    InfinityEngineConfig,
+    InfinityEngineProcess,
+)
 from mlflow_extensions.serving.engines.ollama_engine import (
     OllamaEngineConfig,
     OllamaEngineProcess,
